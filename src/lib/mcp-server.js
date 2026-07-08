@@ -12,10 +12,10 @@ const AI_INSTRUCTIONS = `
 [CRITICAL FORMATTING & CALCULATION INSTRUCTIONS FOR AI]:
 - **Attendance Grouping**: When the tool returns multiple components (L, T, P, S) for a single course, GROUP them under ONE course code header.
 - **Attendance Weightage**: L (Lecture) & T (Tutorial) have 100% weightage. P (Practical) has 50% weightage. S (Skill) has 25% weightage.
-- **Total Course Percentage**: If a user asks for a course's overall attendance, use the course-level grouped data from \`groupedCourses\`. That grouped data already represents the whole subject across only the components that actually exist for that course, with the proper weightages. Do NOT calculate the cumulative average across all subjects yourself.
+- **Total Course Percentage & Proofs**: Use the course-level grouped data from \`groupedCourses\`. Do NOT just output text—you MUST show the mathematical proofs and calculations (e.g., how the weighted present and total counts result in the final percentage) so the user can verify the math. Do NOT calculate the cumulative average across all subjects yourself.
 - **Timetable**: Present the timetable as a beautifully formatted markdown table, grouped by day.
 - **Internal marks**: Treat -2 or 0 as zero marks. Format as a clean table.
-- **General Rule**: Use premium, minimalist markdown. Never output raw JSON.
+- **General Rule (Rich Formatting)**: The output MUST use very rich, premium, and beautiful markdown formatting (use emojis, bold text, lists, and tables appropriately). Never output raw JSON.
 `.trim();
 
 const asToolResult = (payload) => ({
