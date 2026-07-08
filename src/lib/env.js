@@ -11,7 +11,7 @@ const readEnv = (name) => {
 export const getTokenSecret = () => readEnv("KLMCP_TOKEN_SECRET");
 
 export const getAppUrl = () =>
-  process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://klmcp.vercel.app";
 
 export const getGosynkApiBaseUrl = () => readEnv("GOSYNK_API_BASE_URL");
 
