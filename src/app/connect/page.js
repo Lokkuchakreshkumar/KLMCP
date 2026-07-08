@@ -1,8 +1,11 @@
 import { TokenForm } from "@/components/token-form";
+import { getAppUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 export default function ConnectPage() {
+  const mcpUrl = `${getAppUrl().replace(/\/$/, "")}/api/mcp`;
+
   return (
     <main className="page-shell">
       <div className="site-nav">
@@ -33,7 +36,7 @@ export default function ConnectPage() {
           <div className="info-list">
             <div className="info-item">
               <strong>MCP URL</strong>
-              <p className="mono">https://your-domain/api/mcp</p>
+              <p className="mono">{mcpUrl}</p>
             </div>
             <div className="info-item">
               <strong>Authorization</strong>
