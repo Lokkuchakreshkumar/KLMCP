@@ -1,0 +1,168 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+const initialForm = {
+  erpUsername: "",
+  erpPassword: "",
+  lmsUsername: "",
+  lmsPassword: "",
+  academicYear: "",
+  semester: "odd",
+};
+
+export function TokenForm() {
+  const [form, setForm] = useState(initialForm);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const mcpUrl = useMemo(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return `${window.location.origin}/api/mcp`;
+  }, []);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to generate token.");
+      }
+
+      setResult(payload);
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="form-grid" onSubmit={handleSubmit}>
+      <div className="field-split">
+        <div className="field-row">
+          <label htmlFor="erpUsername">ERP username</label>
+          <input
+            id="erpUsername"
+            name="erpUsername"
+            value={form.erpUsername}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="field-row">
+          <label htmlFor="erpPassword">ERP password</label>
+          <input
+            id="erpPassword"
+            name="erpPassword"
+            type="password"
+            value={form.erpPassword}
+            onChange={handleChange}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="field-split">
+        <div className="field-row">
+          <label htmlFor="lmsUsername">LMS username</label>
+          <input
+            id="lmsUsername"
+            name="lmsUsername"
+            value={form.lmsUsername}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="field-row">
+          <label htmlFor="lmsPassword">LMS password</label>
+          <input
+            id="lmsPassword"
+            name="lmsPassword"
+            type="password"
+            value={form.lmsPassword}
+            onChange={handleChange}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="field-split">
+        <div className="field-row">
+          <label htmlFor="academicYear">Academic year</label>
+          <input
+            id="academicYear"
+            name="academicYear"
+            placeholder="2025-2026"
+            value={form.academicYear}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="field-row">
+          <label htmlFor="semester">Semester</label>
+          <select
+            id="semester"
+            name="semester"
+            value={form.semester}
+            onChange={handleChange}
+          >
+            <option value="odd">Odd</option>
+            <option value="even">Even</option>
+          </select>
+        </div>
+      </div>
+
+      <button className="primary-button" disabled={isSubmitting} type="submit">
+        {isSubmitting ? "Generating..." : "Generate KLMCP token"}
+      </button>
+
+      {error ? (
+        <div className="status-box error">
+          <strong>Token generation failed</strong>
+          <p>{error}</p>
+        </div>
+      ) : null}
+
+      {result ? (
+        <>
+          <div className="status-box">
+            <strong>Token ready</strong>
+            <p>
+              Copy the bearer token below and use it for the remote MCP server at{" "}
+              <span className="mono">{mcpUrl || result.mcpUrl}</span>.
+            </p>
+          </div>
+          <div className="token-box">
+            <pre className="mono">{result.accessToken}</pre>
+          </div>
+        </>
+      ) : null}
+    </form>
+  );
+}

@@ -1,0 +1,24 @@
+{
+  "name": "klmcp",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Hosted KL University MCP with onboarding site and remote MCP endpoint",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.15.0",
+    "axios-cookiejar-support": "^6.0.5",
+    "cheerio": "^1.2.0",
+    "mongodb": "^7.5.0",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tough-cookie": "^6.0.1",
+    "zod": "^3.25.76"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///home/chakresh/projects/KLMCP/src/app/api/health/route.js"],"sourcesContent":["import { NextResponse } from \"next/server\";\n\nexport const runtime = \"nodejs\";\nexport const dynamic = \"force-dynamic\";\n\nexport async function GET() {\n  return NextResponse.json({\n    ok: true,\n    service: \"klmcp\",\n    timestamp: new Date().toISOString(),\n  });\n}\n"],"names":["runtime","dynamic","GET","json","ok","service","timestamp","Date","toISOString"],"mappings":";;;;;;;;AAAA;;AAEO,MAAMA,UAAU;AAChB,MAAMC,UAAU;AAEhB,eAAeC;IACpB,OAAO,gJAAY,CAACC,IAAI,CAAC;QACvBC,IAAI;QACJC,SAAS;QACTC,WAAW,IAAIC,OAAOC,WAAW;IACnC;AACF"}}]
+}
