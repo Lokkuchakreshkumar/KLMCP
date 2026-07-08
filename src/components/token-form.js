@@ -161,7 +161,9 @@ export function TokenForm({
       </div>
 
       <button className="primary-button" disabled={isSubmitting} type="submit">
-        {isSubmitting ? "Generating..." : "Generate KLMCP token"}
+        {isSubmitting
+          ? clientId ? "Authorizing..." : "Generating..."
+          : clientId ? "Authorize" : "Generate KLMCP token"}
       </button>
 
       {error ? (
