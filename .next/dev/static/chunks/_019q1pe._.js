@@ -20,7 +20,7 @@ const initialForm = {
     academicYear: "",
     semester: "odd"
 };
-function TokenForm() {
+function TokenForm({ clientId = "", redirectUri = "", responseType = "", scope = "", state = "", codeChallenge = "", codeChallengeMethod = "" }) {
     _s();
     const [form, setForm] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(initialForm);
     const [result, setResult] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
@@ -51,11 +51,24 @@ function TokenForm() {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(form)
+                body: JSON.stringify({
+                    ...form,
+                    clientId,
+                    redirectUri,
+                    responseType,
+                    scope,
+                    state,
+                    codeChallenge,
+                    codeChallengeMethod
+                })
             });
             const payload = await response.json();
             if (!response.ok) {
                 throw new Error(payload.error || "Failed to generate token.");
+            }
+            if (payload.redirectUrl) {
+                window.location.href = payload.redirectUrl;
+                return;
             }
             setResult(payload);
         } catch (submitError) {
@@ -79,7 +92,7 @@ function TokenForm() {
                                 children: "ERP username"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 69,
+                                lineNumber: 91,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -90,13 +103,13 @@ function TokenForm() {
                                 required: true
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 70,
+                                lineNumber: 92,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 68,
+                        lineNumber: 90,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -107,7 +120,7 @@ function TokenForm() {
                                 children: "ERP password"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 79,
+                                lineNumber: 101,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -119,19 +132,19 @@ function TokenForm() {
                                 required: true
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 80,
+                                lineNumber: 102,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 78,
+                        lineNumber: 100,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/token-form.js",
-                lineNumber: 67,
+                lineNumber: 89,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -145,7 +158,7 @@ function TokenForm() {
                                 children: "LMS username"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 93,
+                                lineNumber: 115,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -156,13 +169,13 @@ function TokenForm() {
                                 required: true
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 94,
+                                lineNumber: 116,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 92,
+                        lineNumber: 114,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -173,7 +186,7 @@ function TokenForm() {
                                 children: "LMS password"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 103,
+                                lineNumber: 125,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -185,19 +198,19 @@ function TokenForm() {
                                 required: true
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 104,
+                                lineNumber: 126,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 102,
+                        lineNumber: 124,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/token-form.js",
-                lineNumber: 91,
+                lineNumber: 113,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -211,7 +224,7 @@ function TokenForm() {
                                 children: "Academic year"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 117,
+                                lineNumber: 139,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -223,13 +236,13 @@ function TokenForm() {
                                 required: true
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 118,
+                                lineNumber: 140,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 116,
+                        lineNumber: 138,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -240,7 +253,7 @@ function TokenForm() {
                                 children: "Semester"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 128,
+                                lineNumber: 150,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -254,7 +267,7 @@ function TokenForm() {
                                         children: "Odd"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/token-form.js",
-                                        lineNumber: 135,
+                                        lineNumber: 157,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -262,25 +275,25 @@ function TokenForm() {
                                         children: "Even"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/token-form.js",
-                                        lineNumber: 136,
+                                        lineNumber: 158,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 129,
+                                lineNumber: 151,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 127,
+                        lineNumber: 149,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/token-form.js",
-                lineNumber: 115,
+                lineNumber: 137,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -290,7 +303,7 @@ function TokenForm() {
                 children: isSubmitting ? "Generating..." : "Generate KLMCP token"
             }, void 0, false, {
                 fileName: "[project]/src/components/token-form.js",
-                lineNumber: 141,
+                lineNumber: 163,
                 columnNumber: 7
             }, this),
             error ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -300,20 +313,20 @@ function TokenForm() {
                         children: "Token generation failed"
                     }, void 0, false, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 147,
+                        lineNumber: 169,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                         children: error
                     }, void 0, false, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 148,
+                        lineNumber: 170,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/token-form.js",
-                lineNumber: 146,
+                lineNumber: 168,
                 columnNumber: 9
             }, this) : null,
             result ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -325,7 +338,7 @@ function TokenForm() {
                                 children: "Token ready"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 155,
+                                lineNumber: 177,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -337,20 +350,20 @@ function TokenForm() {
                                         children: mcpUrl || result.mcpUrl
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/token-form.js",
-                                        lineNumber: 158,
+                                        lineNumber: 180,
                                         columnNumber: 15
                                     }, this),
                                     "."
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/token-form.js",
-                                lineNumber: 156,
+                                lineNumber: 178,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 154,
+                        lineNumber: 176,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -360,12 +373,12 @@ function TokenForm() {
                             children: result.accessToken
                         }, void 0, false, {
                             fileName: "[project]/src/components/token-form.js",
-                            lineNumber: 162,
+                            lineNumber: 184,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/token-form.js",
-                        lineNumber: 161,
+                        lineNumber: 183,
                         columnNumber: 11
                     }, this)
                 ]
@@ -373,7 +386,7 @@ function TokenForm() {
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/token-form.js",
-        lineNumber: 66,
+        lineNumber: 88,
         columnNumber: 5
     }, this);
 }

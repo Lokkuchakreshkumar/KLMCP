@@ -1,9 +1,13 @@
 {
+  "/.well-known/oauth-authorization-server/route": "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-protected-resource/route": "/.well-known/oauth-protected-resource",
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
   "/api/health/route": "/api/health",
   "/api/mcp/route": "/api/mcp",
   "/api/token/route": "/api/token",
   "/connect/page": "/connect",
+  "/oauth/authorize/route": "/oauth/authorize",
+  "/oauth/token/route": "/oauth/token",
   "/page": "/"
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 
 import { getAppUrl } from "@/lib/env";
 import { onboardingSchema } from "@/lib/schemas";
@@ -26,6 +27,30 @@ export async function POST(request) {
       issuedAt: now,
       expiresAt: now + 1000 * 60 * 60 * 24 * 30,
     });
+
+    // Check if this was initiated by an OAuth flow
+    const { redirectUri, state, codeChallenge, codeChallengeMethod } = body;
+
+    if (redirectUri) {
+      const code = randomBytes(16).toString("hex");
+      await db.collection("oauth_codes").insertOne({
+        code,
+        accessToken,
+        codeChallenge,
+        codeChallengeMethod,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
+      });
+
+      const redirectUrl = new URL(redirectUri);
+      redirectUrl.searchParams.set("code", code);
+      if (state) {
+        redirectUrl.searchParams.set("state", state);
+      }
+
+      return NextResponse.json({
+        redirectUrl: redirectUrl.toString(),
+      });
+    }
 
     return NextResponse.json({
       accessToken,

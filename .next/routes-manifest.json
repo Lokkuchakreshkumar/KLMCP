@@ -42,6 +42,18 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/.well-known/oauth-authorization-server",
+      "regex": "^/\\.well\\-known/oauth\\-authorization\\-server(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/\\.well\\-known/oauth\\-authorization\\-server(?:/)?$"
+    },
+    {
+      "page": "/.well-known/oauth-protected-resource",
+      "regex": "^/\\.well\\-known/oauth\\-protected\\-resource(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/\\.well\\-known/oauth\\-protected\\-resource(?:/)?$"
+    },
+    {
       "page": "/api/health",
       "regex": "^/api/health(?:/)?$",
       "routeKeys": {},
@@ -64,6 +76,18 @@
       "regex": "^/connect(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/connect(?:/)?$"
+    },
+    {
+      "page": "/oauth/authorize",
+      "regex": "^/oauth/authorize(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/oauth/authorize(?:/)?$"
+    },
+    {
+      "page": "/oauth/token",
+      "regex": "^/oauth/token(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/oauth/token(?:/)?$"
     }
   ],
   "dataRoutes": [],

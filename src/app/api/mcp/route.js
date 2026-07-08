@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 
 import { createMcpServer } from "@/lib/mcp-server";
 import { readAccessToken } from "@/lib/token-crypto";
+import { getAppUrl } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,16 +16,21 @@ const corsHeaders = {
   "Access-Control-Expose-Headers": "mcp-session-id, mcp-protocol-version",
 };
 
-const unauthorized = (message) =>
-  NextResponse.json(
+const unauthorized = (message) => {
+  const appUrl = getAppUrl().replace(/\/$/, "");
+  return NextResponse.json(
     {
       error: message,
     },
     {
       status: 401,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        "WWW-Authenticate": `Bearer realm="mcp", resource_metadata="${appUrl}/.well-known/oauth-protected-resource"`,
+      },
     },
   );
+};
 
 const getUserContextFromRequest = (request) => {
   const authHeader = request.headers.get("authorization") || "";

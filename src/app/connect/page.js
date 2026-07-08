@@ -3,7 +3,16 @@ import { getAppUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-export default function ConnectPage() {
+export default async function ConnectPage({ searchParams }) {
+  const params = await searchParams;
+  const clientId = params.client_id || "";
+  const redirectUri = params.redirect_uri || "";
+  const responseType = params.response_type || "";
+  const scope = params.scope || "";
+  const state = params.state || "";
+  const codeChallenge = params.code_challenge || "";
+  const codeChallengeMethod = params.code_challenge_method || "";
+
   const mcpUrl = `${getAppUrl().replace(/\/$/, "")}/api/mcp`;
 
   return (
@@ -27,7 +36,15 @@ export default function ConnectPage() {
             adding the remote MCP server. Credentials are encrypted into the
             token and are never shown back in plain text.
           </p>
-          <TokenForm />
+          <TokenForm
+            clientId={clientId}
+            redirectUri={redirectUri}
+            responseType={responseType}
+            scope={scope}
+            state={state}
+            codeChallenge={codeChallenge}
+            codeChallengeMethod={codeChallengeMethod}
+          />
         </section>
 
         <aside className="panel">

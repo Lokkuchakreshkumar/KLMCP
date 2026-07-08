@@ -11,7 +11,15 @@ const initialForm = {
   semester: "odd",
 };
 
-export function TokenForm() {
+export function TokenForm({
+  clientId = "",
+  redirectUri = "",
+  responseType = "",
+  scope = "",
+  state = "",
+  codeChallenge = "",
+  codeChallengeMethod = "",
+}) {
   const [form, setForm] = useState(initialForm);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -45,13 +53,27 @@ export function TokenForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          clientId,
+          redirectUri,
+          responseType,
+          scope,
+          state,
+          codeChallenge,
+          codeChallengeMethod,
+        }),
       });
 
       const payload = await response.json();
 
       if (!response.ok) {
         throw new Error(payload.error || "Failed to generate token.");
+      }
+
+      if (payload.redirectUrl) {
+        window.location.href = payload.redirectUrl;
+        return;
       }
 
       setResult(payload);
