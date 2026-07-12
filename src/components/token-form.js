@@ -41,7 +41,7 @@ export function TokenForm({
         setForm((prev) => ({
           ...prev,
           ...parsed,
-          academicYear: "2026-2027",
+          academicYear: parsed.academicYear || "2026-2027",
         }));
       }
     } catch (e) {
@@ -111,6 +111,7 @@ export function TokenForm({
             erpPassword: form.erpPassword,
             lmsUsername: form.lmsUsername,
             lmsPassword: form.lmsPassword,
+            academicYear: form.academicYear,
             semester: form.semester,
           })
         );
@@ -195,13 +196,15 @@ export function TokenForm({
       <div className="field-split">
         <div className="field-row">
           <label htmlFor="academicYear">Academic year</label>
-          <input
+          <select
             id="academicYear"
             name="academicYear"
             value={form.academicYear}
-            readOnly
-            required
-          />
+            onChange={handleChange}
+          >
+            <option value="2025-2026">2025-2026</option>
+            <option value="2026-2027">2026-2027</option>
+          </select>
         </div>
         <div className="field-row">
           <label htmlFor="semester">Semester</label>

@@ -52,7 +52,7 @@ export const createMcpServer = () => {
       const userContext = readUserContext(extra);
       const response = await fetchTimetableFromGosynk({
         ...userContext,
-        academicYear: "2026-2027",
+        academicYear: userContext.academicYear || "2026-2027",
         semester: userContext.semester,
       });
 
@@ -68,7 +68,7 @@ export const createMcpServer = () => {
       const userContext = readUserContext(extra);
       const response = await fetchAttendanceFromGosynk({
         ...userContext,
-        academicYear: "2026-2027",
+        academicYear: userContext.academicYear || "2026-2027",
         semester: userContext.semester,
       });
 
@@ -88,7 +88,7 @@ export const createMcpServer = () => {
       const response = await fetchInternalMarksFromGosynk(
         {
           ...userContext,
-          academicYear: "2026-2027",
+          academicYear: userContext.academicYear || "2026-2027",
           semester: userContext.semester,
         },
         {
@@ -115,11 +115,11 @@ export const createMcpServer = () => {
   server.tool(
     "diagnose_student_access",
     "Checks whether ERP and LMS access currently work for the linked student credentials.",
-    overrideSchema,
+    {},
     async (args, extra) => {
       const userContext = readUserContext(extra);
-      const academicYear = "2026-2027";
-      const semester = args.semester || userContext.semester;
+      const academicYear = userContext.academicYear || "2026-2027";
+      const semester = userContext.semester;
 
       const diagnostics = {
         erpTimetable: { ok: false, message: "" },
