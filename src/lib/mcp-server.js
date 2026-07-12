@@ -45,7 +45,6 @@ export const createMcpServer = () => {
   });
 
   const overrideSchema = {
-    academicYear: z.string().optional(),
     semester: z.enum(["odd", "even"]).optional(),
   };
 
@@ -57,7 +56,7 @@ export const createMcpServer = () => {
       const userContext = readUserContext(extra);
       const response = await fetchTimetableFromGosynk({
         ...userContext,
-        academicYear: args.academicYear || userContext.academicYear,
+        academicYear: "2026-2027",
         semester: args.semester || userContext.semester,
       });
 
@@ -73,7 +72,7 @@ export const createMcpServer = () => {
       const userContext = readUserContext(extra);
       const response = await fetchAttendanceFromGosynk({
         ...userContext,
-        academicYear: args.academicYear || userContext.academicYear,
+        academicYear: "2026-2027",
         semester: args.semester || userContext.semester,
       });
 
@@ -94,7 +93,7 @@ export const createMcpServer = () => {
       const response = await fetchInternalMarksFromGosynk(
         {
           ...userContext,
-          academicYear: args.academicYear || userContext.academicYear,
+          academicYear: "2026-2027",
           semester: args.semester || userContext.semester,
         },
         {
@@ -124,7 +123,7 @@ export const createMcpServer = () => {
     overrideSchema,
     async (args, extra) => {
       const userContext = readUserContext(extra);
-      const academicYear = args.academicYear || userContext.academicYear;
+      const academicYear = "2026-2027";
       const semester = args.semester || userContext.semester;
 
       const diagnostics = {
