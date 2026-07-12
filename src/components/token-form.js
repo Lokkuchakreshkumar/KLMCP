@@ -24,9 +24,16 @@ export function TokenForm({
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasExistingToken, setHasExistingToken] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     try {
+      const token = localStorage.getItem("klmcp_token");
+      if (token) {
+        setHasExistingToken(true);
+      }
+      
       const saved = localStorage.getItem("klmcp_credentials");
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -63,12 +70,20 @@ export function TokenForm({
     setError("");
     setResult(null);
 
+    const existingToken = localStorage.getItem("klmcp_token");
+    setIsUpdating(!!existingToken);
+
     try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (existingToken) {
+        headers["Authorization"] = `Bearer ${existingToken}`;
+      }
+
       const response = await fetch("/api/token", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           ...form,
           clientId,
@@ -98,6 +113,9 @@ export function TokenForm({
             semester: form.semester,
           })
         );
+        if (payload.accessToken) {
+          localStorage.setItem("klmcp_token", payload.accessToken);
+        }
       } catch (storageError) {
         console.error("Failed to save credentials to localStorage", storageError);
       }
@@ -117,6 +135,14 @@ export function TokenForm({
 
   return (
     <form className="form-grid" onSubmit={handleSubmit}>
+      {hasExistingToken && (
+        <div className="status-box" style={{ marginBottom: 12, borderLeft: "4px solid var(--colors-primary)" }}>
+          <strong style={{ display: "block", marginBottom: 4, fontSize: "14px" }}>Active Session Detected</strong>
+          <p style={{ margin: 0, fontSize: "13px", color: "var(--colors-body)" }}>
+            You already have an active token. Submitting this form will update your semester or credentials on the server. <strong>Your existing MCP client setup will work instantly without any re-configuration!</strong>
+          </p>
+        </div>
+      )}
       <div className="field-split">
         <div className="field-row">
           <label htmlFor="erpUsername">ERP username</label>
@@ -206,10 +232,21 @@ export function TokenForm({
       {result ? (
         <>
           <div className="status-box" style={{ marginTop: 8 }}>
-            <strong style={{ display: "block", marginBottom: 6 }}>Token ready</strong>
+            <strong style={{ display: "block", marginBottom: 6 }}>
+              {isUpdating ? "Configuration Updated Successfully" : "Token ready"}
+            </strong>
             <p style={{ margin: 0, fontSize: "14px" }}>
-              Copy the bearer token below and use it for the remote MCP server at{" "}
-              <span className="mono" style={{ color: "var(--colors-primary-hover)" }}>{mcpUrl || result.mcpUrl}</span>.
+              {isUpdating ? (
+                <>
+                  Your semester and credentials have been updated in the database. 
+                  <strong> Your active MCP client configuration will automatically reflect these updates</strong>—no need to change the token settings in ChatGPT/Cursor/Claude!
+                </>
+              ) : (
+                <>
+                  Copy the bearer token below and use it for the remote MCP server at{" "}
+                  <span className="mono" style={{ color: "var(--colors-primary-hover)" }}>{mcpUrl || result.mcpUrl}</span>.
+                </>
+              )}
             </p>
           </div>
           <div className="token-box" style={{ marginTop: 12 }}>

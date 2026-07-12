@@ -28,8 +28,8 @@
   --colors-semantic-success: #1f8a65;
   
   /* Typography Variables */
-  --font-sans: var(--font-sans), system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-mono: var(--font-mono), "Fira Code", monospace;
+  --font-sans: var(--font-lastik), system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-jb-mono), "Fira Code", monospace;
 }
 
 * {
@@ -160,6 +160,88 @@ button, input, select, textarea {
   height: 12px;
   background-color: var(--colors-primary);
   border-radius: 9999px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.nav-links button,
+.nav-links a {
+  font-size: 13px;
+  color: var(--colors-body);
+}
+
+.nav-links .button-primary {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: var(--colors-primary);
+  color: var(--colors-on-primary);
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--colors-ink);
+  cursor: pointer;
+  padding: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 150ms ease;
+}
+
+.mobile-menu-toggle:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  .top-nav {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 0px !important;
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--colors-canvas-soft);
+    border-bottom: 1px solid var(--colors-hairline);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 24px;
+    gap: 16px;
+    z-index: 50;
+  }
+
+  .nav-links.mobile-open {
+    display: flex;
+  }
+
+  .nav-links button,
+  .nav-links a {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    font-size: 14px !important;
+  }
+
+  .nav-links .button-primary {
+    justify-content: center;
+  }
 }
 
 /* Buttons */
@@ -1006,4 +1088,18 @@ button, input, select, textarea {
   .field-split {
     grid-template-columns: 1fr;
   }
+}
+
+/* Dynamic AI transition styling */
+.blur-transition {
+  transition: filter 300ms ease, opacity 300ms ease, transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  filter: blur(0px);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.blur-transition.blur-active {
+  filter: blur(12px);
+  opacity: 0;
+  transform: scale(0.95);
 }

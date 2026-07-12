@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 
 import { getAppUrl } from "@/lib/env";
 import { onboardingSchema } from "@/lib/schemas";
-import { issueAccessToken } from "@/lib/token-crypto";
+import { issueAccessToken, readAccessToken } from "@/lib/token-crypto";
 import { connectToDatabase } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -14,22 +14,35 @@ export async function POST(request) {
     const body = await request.json();
     const parsed = onboardingSchema.parse(body);
     
-    // Save raw credentials to MongoDB (upsert by erpUsername to preserve existing credentialId)
     const { db } = await connectToDatabase();
-    const existing = await db.collection("credentials").findOne({ erpUsername: parsed.erpUsername });
-    let credentialId;
-    if (existing) {
-      await db.collection("credentials").updateOne(
-        { _id: existing._id },
-        {
-          $set: {
-            ...parsed,
-            updatedAt: new Date(),
+    
+    // Check if an existing token was provided to update credentials for that specific credentialId
+    const authHeader = request.headers.get("authorization") || "";
+    let credentialId = null;
+
+    if (authHeader.startsWith("Bearer ")) {
+      const existingToken = authHeader.slice("Bearer ".length).trim();
+      try {
+        const decrypted = readAccessToken(existingToken);
+        credentialId = decrypted.credentialId;
+        
+        const { ObjectId } = await import("mongodb");
+        await db.collection("credentials").updateOne(
+          { _id: new ObjectId(credentialId) },
+          {
+            $set: {
+              ...parsed,
+              updatedAt: new Date(),
+            }
           }
-        }
-      );
-      credentialId = existing._id.toString();
-    } else {
+        );
+      } catch (err) {
+        // If token is invalid or expired, ignore it and create a new record
+        credentialId = null;
+      }
+    }
+
+    if (!credentialId) {
       const insertResult = await db.collection("credentials").insertOne({
         ...parsed,
         createdAt: new Date(),

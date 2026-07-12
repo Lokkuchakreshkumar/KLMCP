@@ -4,9 +4,29 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { McpGuide } from "@/components/mcp-guide";
 
+const AI_CLIENTS = [
+  { name: "ChatGPT", logo: "/chatgpt_logo.png" },
+  { name: "Claude", logo: "/claude_logo.png" },
+  { name: "Gemini", logo: "/gemini_logo.png" },
+];
+
 export default function HomePage() {
   const [activeStep, setActiveStep] = useState(0); // Cycle: 0, 1, 2
   const [copied, setCopied] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentClientIndex, setCurrentClientIndex] = useState(0);
+  const [isBlurring, setIsBlurring] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsBlurring(true);
+      setTimeout(() => {
+        setCurrentClientIndex((prev) => (prev + 1) % AI_CLIENTS.length);
+        setIsBlurring(false);
+      }, 300);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const steps = [
     {
@@ -48,17 +68,31 @@ export default function HomePage() {
   return (
     <main className="page-shell" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px" }}>
       {/* Top Navbar */}
-      <nav className="top-nav" style={{ padding: "0", marginBottom: "48px", borderBottom: "1px solid var(--colors-hairline)" }}>
+      <nav className="top-nav" style={{ padding: "0", marginBottom: "48px", borderBottom: "1px solid var(--colors-hairline)", position: "relative" }}>
         <div className="brand-mark" style={{ fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
           <img src="/logo/image.png" alt="KLMCP" style={{ height: "48px", width: "auto" }} />
           <span>KLMCP</span>
         </div>
-        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+        
+        {/* Hamburger toggle button */}
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle Menu"
+        >
+          {isMenuOpen ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          )}
+        </button>
+
+        <div className={`nav-links ${isMenuOpen ? "mobile-open" : ""}`}>
           <McpGuide />
-          <Link className="button-tertiary-text" href="/api/health" style={{ fontSize: "13px", color: "var(--colors-body)" }}>
+          <Link className="button-tertiary-text" href="/api/health">
             Health check
           </Link>
-          <Link className="button-primary" href="/connect" style={{ height: "36px", padding: "0 16px", fontSize: "13px", borderRadius: "8px", background: "var(--colors-primary)", color: "var(--colors-on-primary)" }}>
+          <Link className="button-primary" href="/connect">
             Get Started
           </Link>
         </div>
@@ -66,10 +100,29 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="hero-band" style={{ padding: "40px 0 64px" }}>
-        <h1 className="display-mega" style={{ textAlign: "center", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" }}>
-          <img src="/logo/image.png" alt="KLMCP Logo" style={{ height: "148px", width: "auto" }} />
-          <span>MCP for KLU</span>
-        </h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+          <h1 className="display-mega" style={{ textAlign: "center", maxWidth: "1000px", lineHeight: "1.3" }}>
+            <span>Attendance, TimeTable, Internals, LMS, Everything in </span>
+            <span 
+              className={`blur-transition ${isBlurring ? "blur-active" : ""}`} 
+              style={{ 
+                color: "var(--colors-primary)", 
+                display: "inline-flex", 
+                alignItems: "center", 
+                gap: "16px",
+                fontWeight: "600",
+                verticalAlign: "middle"
+              }}
+            >
+              <span>{AI_CLIENTS[currentClientIndex].name}</span>
+              <img 
+                src={AI_CLIENTS[currentClientIndex].logo} 
+                alt="" 
+                style={{ height: "0.95em", width: "auto", objectFit: "contain", display: "inline-block" }} 
+              />
+            </span>
+          </h1>
+        </div>
         <p className="hero-subhead" style={{ textAlign: "center", fontSize: "16px", lineHeight: "1.6", color: "var(--colors-body)" }}>
           KLMCP is a quietly-confident bridge turning your ERP and LMS data into a hosted endpoint.
           Query your schedule, attendance, and internals directly from your favorite AI chat client.

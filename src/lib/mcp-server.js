@@ -44,20 +44,16 @@ export const createMcpServer = () => {
     version: "0.2.0",
   });
 
-  const overrideSchema = {
-    semester: z.enum(["odd", "even"]).optional(),
-  };
-
   server.tool(
     "get_timetable",
     "Fetches the student's KL University timetable.",
-    overrideSchema,
+    {},
     async (args, extra) => {
       const userContext = readUserContext(extra);
       const response = await fetchTimetableFromGosynk({
         ...userContext,
         academicYear: "2026-2027",
-        semester: args.semester || userContext.semester,
+        semester: userContext.semester,
       });
 
       return asToolResult(response);
@@ -67,13 +63,13 @@ export const createMcpServer = () => {
   server.tool(
     "get_attendance",
     "Fetches weighted course attendance from KL University ERP.",
-    overrideSchema,
+    {},
     async (args, extra) => {
       const userContext = readUserContext(extra);
       const response = await fetchAttendanceFromGosynk({
         ...userContext,
         academicYear: "2026-2027",
-        semester: args.semester || userContext.semester,
+        semester: userContext.semester,
       });
 
       return asToolResult(response);
@@ -84,7 +80,6 @@ export const createMcpServer = () => {
     "get_internal_marks",
     "Fetches internal marks from KL University ERP.",
     {
-      ...overrideSchema,
       courseQuery: z.string().optional(),
       componentQuery: z.string().optional(),
     },
@@ -94,7 +89,7 @@ export const createMcpServer = () => {
         {
           ...userContext,
           academicYear: "2026-2027",
-          semester: args.semester || userContext.semester,
+          semester: userContext.semester,
         },
         {
           courseQuery: args.courseQuery,

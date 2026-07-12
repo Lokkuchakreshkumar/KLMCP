@@ -8,7 +8,7 @@ colors:
   on-primary: "#ffffff"
   primary-hover: "#828fff"
   primary-focus: "#5e69d1"
-  ink: "#f7f8f8"
+  ink: "#f7f8f8
   ink-muted: "#d0d6e0"
   ink-subtle: "#8a8f98"
   ink-tertiary: "#62666d"
