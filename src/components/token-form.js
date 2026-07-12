@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const initialForm = {
   erpUsername: "",
   erpPassword: "",
   lmsUsername: "",
   lmsPassword: "",
-  academicYear: "",
+  academicYear: "2026-2027",
   semester: "odd",
 };
 
@@ -24,6 +24,22 @@ export function TokenForm({
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("klmcp_credentials");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setForm((prev) => ({
+          ...prev,
+          ...parsed,
+          academicYear: "2026-2027",
+        }));
+      }
+    } catch (e) {
+      console.error("Failed to load saved credentials from localStorage", e);
+    }
+  }, []);
 
   const mcpUrl = useMemo(() => {
     if (typeof window === "undefined") {
@@ -69,6 +85,21 @@ export function TokenForm({
 
       if (!response.ok) {
         throw new Error(payload.error || "Failed to generate token.");
+      }
+
+      try {
+        localStorage.setItem(
+          "klmcp_credentials",
+          JSON.stringify({
+            erpUsername: form.erpUsername,
+            erpPassword: form.erpPassword,
+            lmsUsername: form.lmsUsername,
+            lmsPassword: form.lmsPassword,
+            semester: form.semester,
+          })
+        );
+      } catch (storageError) {
+        console.error("Failed to save credentials to localStorage", storageError);
       }
 
       if (payload.redirectUrl) {
@@ -140,9 +171,8 @@ export function TokenForm({
           <input
             id="academicYear"
             name="academicYear"
-            placeholder="2025-2026"
             value={form.academicYear}
-            onChange={handleChange}
+            readOnly
             required
           />
         </div>
