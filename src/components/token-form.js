@@ -198,21 +198,21 @@ export function TokenForm({
 
       {error ? (
         <div className="status-box error">
-          <strong>Token generation failed</strong>
-          <p>{error}</p>
+          <strong style={{ display: "block", marginBottom: 6 }}>Token generation failed</strong>
+          <p style={{ margin: 0, fontSize: "14px" }}>{error}</p>
         </div>
       ) : null}
 
       {result ? (
         <>
-          <div className="status-box">
-            <strong>Token ready</strong>
-            <p>
+          <div className="status-box" style={{ marginTop: 8 }}>
+            <strong style={{ display: "block", marginBottom: 6 }}>Token ready</strong>
+            <p style={{ margin: 0, fontSize: "14px" }}>
               Copy the bearer token below and use it for the remote MCP server at{" "}
-              <span className="mono">{mcpUrl || result.mcpUrl}</span>.
+              <span className="mono" style={{ color: "var(--colors-primary-hover)" }}>{mcpUrl || result.mcpUrl}</span>.
             </p>
           </div>
-          <div className="token-box">
+          <div className="token-box" style={{ marginTop: 12 }}>
             <pre className="mono">{result.accessToken}</pre>
           </div>
         </>

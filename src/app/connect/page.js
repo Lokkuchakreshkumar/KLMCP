@@ -1,5 +1,6 @@
 import { TokenForm } from "@/components/token-form";
 import { getAppUrl } from "@/lib/env";
+import { McpGuide } from "@/components/mcp-guide";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +19,25 @@ export default async function ConnectPage({ searchParams }) {
   return (
     <main className="page-shell">
       <div className="site-nav">
-        <a className="brand" href="/">
-          <div className="brand-mark">KL</div>
+        <a className="brand" href="/" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <img src="/logo/image.png" alt="KLMCP" style={{ height: "48px", width: "auto" }} />
           <div className="brand-copy">
             <span>KLMCP</span>
             <span className="small">Onboarding and authorization</span>
           </div>
         </a>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <McpGuide />
+        </div>
       </div>
 
       <div className="connect-layout">
         <section className="panel">
-          <div className="section-kicker">
+          <span className="eyebrow">
             {clientId ? "Authorize application" : "Generate access token"}
-          </div>
-          <h1 style={{ marginTop: 0 }}>Connect your ERP and LMS credentials.</h1>
-          <p>
+          </span>
+          <h1 className="headline" style={{ margin: "0 0 16px 0" }}>Connect your ERP and LMS credentials.</h1>
+          <p style={{ marginBottom: 24 }}>
             {clientId
               ? "Provide your credentials to authorize the AI client to access your student data securely."
               : "This token is what the user will paste into ChatGPT or Claude when adding the remote MCP server."}
@@ -51,12 +55,12 @@ export default async function ConnectPage({ searchParams }) {
 
         {!clientId && (
           <aside className="panel">
-            <div className="section-kicker">Connector setup</div>
-            <h2>What the user will paste</h2>
-            <div className="info-list">
+            <span className="eyebrow">Connector setup</span>
+            <h3>What the user will paste</h3>
+            <div className="info-list" style={{ marginTop: 20 }}>
               <div className="info-item">
                 <strong>MCP URL</strong>
-                <p className="mono">{mcpUrl}</p>
+                <p className="mono" style={{ wordBreak: "break-all" }}>{mcpUrl}</p>
               </div>
               <div className="info-item">
                 <strong>Authorization</strong>
