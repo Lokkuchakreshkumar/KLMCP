@@ -744,6 +744,9 @@ button, input, select, textarea {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--colors-timeline-edit);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .info-list {

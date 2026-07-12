@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CopyButton } from "@/components/copy-button";
 
 const initialForm = {
   erpUsername: "",
@@ -249,7 +250,11 @@ export function TokenForm({
               )}
             </p>
           </div>
-          <div className="token-box" style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+            <span className="caption-uppercase" style={{ color: "var(--colors-body)" }}>Bearer Token</span>
+            <CopyButton text={result.accessToken} />
+          </div>
+          <div className="token-box" style={{ marginTop: 8 }}>
             <pre className="mono">{result.accessToken}</pre>
           </div>
         </>

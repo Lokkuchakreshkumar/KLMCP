@@ -1,6 +1,7 @@
 import { TokenForm } from "@/components/token-form";
 import { getAppUrl } from "@/lib/env";
 import { McpGuide } from "@/components/mcp-guide";
+import { CopyButton } from "@/components/copy-button";
 
 export const dynamic = "force-dynamic";
 
@@ -56,27 +57,45 @@ export default async function ConnectPage({ searchParams }) {
         {!clientId && (
           <aside className="panel">
             <span className="eyebrow">Connector setup</span>
-            <h3>What the user will paste</h3>
+            <h3>How to set up the MCP Server</h3>
             <div className="info-list" style={{ marginTop: 20 }}>
               <div className="info-item">
-                <strong>MCP URL</strong>
-                <p className="mono" style={{ wordBreak: "break-all" }}>{mcpUrl}</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <strong>1. Copy MCP Endpoint URL</strong>
+                  <CopyButton text={mcpUrl} />
+                </div>
+                <p className="mono" style={{ wordBreak: "break-all", fontSize: "13px", padding: "8px", background: "var(--colors-canvas-soft)", border: "1px solid var(--colors-hairline)", borderRadius: "6px", margin: 0 }}>
+                  {mcpUrl}
+                </p>
+                <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--colors-body)" }}>
+                  Paste this URL as the MCP Server URL/Endpoint in your AI client (e.g. Cursor, Claude, ChatGPT).
+                </p>
               </div>
+
               <div className="info-item">
-                <strong>Authorization</strong>
-                <p>Use the generated bearer token in the connector auth field.</p>
+                <strong>2. Generate Authorization Token</strong>
+                <p style={{ margin: "6px 0 0", fontSize: "13px", color: "var(--colors-body)" }}>
+                  Fill out the form on the left with your credentials and click generate to obtain your bearer token.
+                </p>
               </div>
+
               <div className="info-item">
-                <strong>Supported tools</strong>
-                <p>
-                  Timetable, attendance, internal marks, LMS dues, and a
-                  diagnostic check.
+                <strong>3. Configure Authentication</strong>
+                <p style={{ margin: "6px 0 0", fontSize: "13px", color: "var(--colors-body)" }}>
+                  In your AI client's MCP settings, select <strong>SSE (Server-Sent Events)</strong> transport type and add the authorization header:
+                </p>
+                <pre style={{ margin: "8px 0 0", padding: "8px", background: "var(--colors-canvas-soft)", border: "1px solid var(--colors-hairline)", borderRadius: "6px", fontSize: "12px", color: "var(--colors-timeline-edit)", fontFamily: "var(--font-mono)", overflowX: "auto" }}>
+                  Authorization: Bearer &lt;token&gt;
+                </pre>
+              </div>
+
+              <div className="info-item">
+                <strong>Next Steps / Semester Updates</strong>
+                <p style={{ margin: "6px 0 0", fontSize: "13px", color: "var(--colors-body)" }}>
+                  Whenever semesters change, simply submit the form again. The MCP server will automatically update in place without requiring you to copy a new URL or token!
                 </p>
               </div>
             </div>
-            <p className="footer-note">
-              This is a hosted token flow. If you use OAuth, you won't need to manually paste the token.
-            </p>
           </aside>
         )}
       </div>
