@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 import { getTokenSecret } from "@/lib/env";
-import { mcpUserContextSchema } from "@/lib/schemas";
+import { tokenPayloadSchema } from "@/lib/schemas";
 
 const toBase64Url = (buffer) =>
   buffer
@@ -19,7 +19,7 @@ const fromBase64Url = (value) => {
 const getKey = () => createHash("sha256").update(getTokenSecret()).digest();
 
 export const issueAccessToken = (payload) => {
-  const validated = mcpUserContextSchema.parse(payload);
+  const validated = tokenPayloadSchema.parse(payload);
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", getKey(), iv);
   const encrypted = Buffer.concat([
@@ -47,7 +47,7 @@ export const readAccessToken = (token) => {
     decipher.final(),
   ]).toString("utf8");
 
-  const payload = mcpUserContextSchema.parse(JSON.parse(decrypted));
+  const payload = tokenPayloadSchema.parse(JSON.parse(decrypted));
 
   if (payload.expiresAt <= Date.now()) {
     throw new Error("Access token expired.");

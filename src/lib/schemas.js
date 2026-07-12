@@ -9,7 +9,8 @@ export const onboardingSchema = z.object({
   semester: z.enum(["odd", "even"]),
 });
 
-export const mcpUserContextSchema = onboardingSchema.extend({
+export const tokenPayloadSchema = z.object({
+  credentialId: z.string(),
   issuedAt: z.number(),
   expiresAt: z.number(),
 });

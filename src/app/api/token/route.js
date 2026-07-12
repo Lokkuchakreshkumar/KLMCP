@@ -14,16 +14,32 @@ export async function POST(request) {
     const body = await request.json();
     const parsed = onboardingSchema.parse(body);
     
-    // Save raw credentials to MongoDB
+    // Save raw credentials to MongoDB (upsert by erpUsername to preserve existing credentialId)
     const { db } = await connectToDatabase();
-    await db.collection("credentials").insertOne({
-      ...parsed,
-      createdAt: new Date(),
-    });
+    const existing = await db.collection("credentials").findOne({ erpUsername: parsed.erpUsername });
+    let credentialId;
+    if (existing) {
+      await db.collection("credentials").updateOne(
+        { _id: existing._id },
+        {
+          $set: {
+            ...parsed,
+            updatedAt: new Date(),
+          }
+        }
+      );
+      credentialId = existing._id.toString();
+    } else {
+      const insertResult = await db.collection("credentials").insertOne({
+        ...parsed,
+        createdAt: new Date(),
+      });
+      credentialId = insertResult.insertedId.toString();
+    }
 
     const now = Date.now();
     const accessToken = issueAccessToken({
-      ...parsed,
+      credentialId,
       issuedAt: now,
       expiresAt: now + 1000 * 60 * 60 * 24 * 30,
     });

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { ObjectId } from "mongodb";
 
 import { createMcpServer } from "@/lib/mcp-server";
 import { readAccessToken } from "@/lib/token-crypto";
 import { getAppUrl } from "@/lib/env";
+import { connectToDatabase } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ const unauthorized = (message) => {
   );
 };
 
-const getUserContextFromRequest = (request) => {
+const getUserContextFromRequest = async (request) => {
   const authHeader = request.headers.get("authorization") || "";
 
   if (!authHeader.startsWith("Bearer ")) {
@@ -45,15 +47,30 @@ const getUserContextFromRequest = (request) => {
     throw new Error("Bearer token is empty.");
   }
 
+  const payload = readAccessToken(token);
+
+  // Retrieve credentials from MongoDB dynamically using the credentialId
+  const { db } = await connectToDatabase();
+  const credentials = await db.collection("credentials").findOne({
+    _id: new ObjectId(payload.credentialId),
+  });
+
+  if (!credentials) {
+    throw new Error("Credentials not found or deleted.");
+  }
+
   return {
     token,
-    userContext: readAccessToken(token),
+    userContext: {
+      ...credentials,
+      expiresAt: payload.expiresAt,
+    },
   };
 };
 
 const handleMcpRequest = async (request) => {
   try {
-    const { token, userContext } = getUserContextFromRequest(request);
+    const { token, userContext } = await getUserContextFromRequest(request);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
