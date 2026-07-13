@@ -29,7 +29,9 @@ export default function RootLayout({ children }) {
       className={`${lastik.variable} ${jetbrainsMono.variable}`}
     >
       <body className="page-container">
-        {children}
+        <div className="main-content-panel">
+          {children}
+        </div>
       </body>
     </html>
   );

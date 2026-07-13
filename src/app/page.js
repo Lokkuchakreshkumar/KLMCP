@@ -66,42 +66,151 @@ export default function HomePage() {
   };
 
   return (
-    <main className="page-shell" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px" }}>
-      {/* Top Navbar */}
-      <nav className="top-nav" style={{ padding: "0", marginBottom: "48px", borderBottom: "1px solid var(--colors-hairline)", position: "relative" }}>
-        <div className="brand-mark" style={{ fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
-          <img src="/logo/image.png" alt="KLMCP" style={{ height: "48px", width: "auto" }} />
-          <span>KLMCP</span>
-        </div>
-        
-        {/* Hamburger toggle button */}
-        <button 
-          className="mobile-menu-toggle"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle Menu"
-        >
-          {isMenuOpen ? (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          ) : (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          )}
-        </button>
+    <main style={{ width: "100%", position: "relative" }}>
+      {/* Top Navbar Floating Overlay (Runway Style) */}
+      <header className="runway-header" style={{ position: "sticky", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", justifyContent: "center", pointerEvents: "none", height: "64px", marginBottom: "-64px" }}>
+        <div className="runway-header-inner" style={{ pointerEvents: "auto", position: "relative", width: "800px", maxWidth: "calc(100% - 64px)" }}>
+          {/* Left Inverted Corner */}
+          <div className="runway-corner-left" style={{
+            position: "absolute",
+            top: 0,
+            left: "-24px",
+            width: "24px",
+            height: "24px",
+            background: "radial-gradient(circle at bottom left, transparent 24px, #000000 24.5px)"
+          }} />
+          
+          <nav className="top-nav" style={{ 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "24px",
+            padding: "16px 32px", 
+            background: "#000000", 
+            borderBottomLeftRadius: "24px",
+            borderBottomRightRadius: "24px",
+            minHeight: "64px",
+            width: "100%"
+          }}>
+            <div className="brand-mark" style={{ fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+              <img src="/logo/image.png" alt="KLMCP" style={{ height: "36px", width: "auto" }} />
+              <span style={{ color: "#fff" }}>KLMCP</span>
+            </div>
+            
+            {/* Navigation links (hidden on mobile, expandable) */}
+            <div 
+              className={`nav-links ${isMenuOpen ? "mobile-open" : ""}`} 
+              style={{ 
+                backgroundColor: isMenuOpen ? "#000000" : "transparent",
+                borderRadius: isMenuOpen ? "16px" : "0",
+                marginTop: isMenuOpen ? "8px" : "0"
+              }}
+            >
+              <McpGuide />
+              <Link className="button-tertiary-text" href="/api/health" style={{ color: "rgba(255,255,255,0.7)" }}>
+                Health check
+              </Link>
+            </div>
 
-        <div className={`nav-links ${isMenuOpen ? "mobile-open" : ""}`}>
-          <McpGuide />
-          <Link className="button-tertiary-text" href="/api/health">
-            Health check
-          </Link>
-          <Link className="button-primary" href="/connect">
-            Get Started
-          </Link>
-        </div>
-      </nav>
+            {/* Action buttons visible on both mobile and desktop */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <Link className="button-primary desktop-only-btn" href="/connect" style={{ 
+                height: "38px", 
+                padding: "0 8px 0 16px", 
+                background: "var(--colors-primary)", 
+                color: "white", 
+                borderRadius: "999px", 
+                display: "flex", 
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                textDecoration: "none"
+              }}>
+                <span>Get Started</span>
+                <span style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "26px",
+                  height: "26px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.2)",
+                  color: "#ffffff",
+                  fontSize: "14px",
+                  fontWeight: "bold"
+                }}>
+                  ↗
+                </span>
+              </Link>
 
-      {/* Hero Section */}
-      <section className="hero-band" style={{ padding: "40px 0 64px" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-          <h1 className="display-mega" style={{ textAlign: "center", maxWidth: "1000px", lineHeight: "1.3" }}>
+              {/* Hamburger toggle button */}
+              <button 
+                className="mobile-menu-toggle"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Toggle Menu"
+                style={{ color: "#fff" }}
+              >
+                {isMenuOpen ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" y1="8" x2="20" y2="8"></line><line x1="8" y1="16" x2="20" y2="16"></line></svg>
+                )}
+              </button>
+            </div>
+          </nav>
+          
+          {/* Right Inverted Corner */}
+          <div className="runway-corner-right" style={{
+            position: "absolute",
+            top: 0,
+            right: "-24px",
+            width: "24px",
+            height: "24px",
+            background: "radial-gradient(circle at bottom right, transparent 24px, #000000 24.5px)"
+          }} />
+        </div>
+      </header>
+
+      {/* Hero Section with Full-Screen Height and Background Image */}
+      <section 
+        className="hero-band" 
+        style={{ 
+          position: "relative",
+          backgroundImage: "url('/hero/image.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          minHeight: "calc(100vh - 24px)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start",
+          alignItems: "center",
+          padding: "120px 24px 0",
+          color: "#ffffff"
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "1000px", zIndex: 2 }}>
+          {/* Now Available Pill (Runway style) */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "6px 16px",
+            borderRadius: "999px",
+            background: "rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            fontSize: "12px",
+            fontWeight: "500",
+            color: "rgba(255, 255, 255, 0.9)",
+            marginBottom: "24px",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--colors-primary)", display: "inline-block" }}></span>
+            <span>Now Available</span>
+          </div>
+
+          <h1 className="display-mega" style={{ textAlign: "center", maxWidth: "1000px", lineHeight: "1.3", color: "#ffffff", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
             <span>Attendance, TimeTable, Internals, LMS, Everything in </span>
             <span 
               className={`blur-transition ${isBlurring ? "blur-active" : ""}`} 
@@ -122,20 +231,23 @@ export default function HomePage() {
               />
             </span>
           </h1>
-        </div>
-        <p className="hero-subhead" style={{ textAlign: "center", fontSize: "16px", lineHeight: "1.6", color: "var(--colors-body)" }}>
-          KLMCP is a quietly-confident bridge turning your ERP and LMS data into a hosted endpoint.
-          Query your schedule, attendance, and internals directly from your favorite AI chat client.
-        </p>
-        <div className="hero-actions" style={{ marginTop: "24px" }}>
-          <Link className="button-primary" href="/connect" style={{ height: "42px", padding: "0 20px", background: "var(--colors-primary)" }}>
-            Get started for free
-          </Link>
-          <a className="button-secondary" href="#demo" style={{ height: "42px", padding: "0 20px" }}>
-            View live workflow
-          </a>
+          <p className="hero-subhead" style={{ textAlign: "center", fontSize: "17px", lineHeight: "1.6", color: "rgba(255,255,255,0.85)", maxWidth: "700px", margin: "24px auto 32px", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
+            KLMCP is a quietly-confident bridge turning your ERP and LMS data into a hosted endpoint.
+            Query your schedule, attendance, and internals directly from your favorite AI chat client.
+          </p>
+          <div style={{ marginTop: "32px", display: "flex", justifyContent: "center", width: "100%" }}>
+            <Link className="runway-cta" href="/connect">
+              <span>Get Started</span>
+              <span className="runway-cta-arrow">
+                ↗
+              </span>
+            </Link>
+          </div>
         </div>
       </section>
+
+      {/* Main Content Wrapper (Container for remaining sections) */}
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px" }}>
 
       {/* IDE Mockup Showcase */}
       <section id="demo" style={{ padding: "0 0 80px" }}>
@@ -355,6 +467,7 @@ export default function HomePage() {
           </span>
         </div>
       </footer>
+      </div>
     </main>
   );
 }

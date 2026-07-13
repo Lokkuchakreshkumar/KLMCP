@@ -66,9 +66,30 @@ button, input, select, textarea {
 }
 
 /* Page Shell */
-.page-container {
+body.page-container {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000000; /* Solid black outer area */
+  padding: 12px; /* the margin around the panel */
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.main-content-panel {
+  background-color: var(--colors-canvas);
+  border-radius: 24px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  /* Hide scrollbar for a cleaner app-like UI */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.main-content-panel::-webkit-scrollbar {
+  display: none;
 }
 
 /* Typography Scale */
@@ -1105,4 +1126,92 @@ button, input, select, textarea {
   filter: blur(12px);
   opacity: 0;
   transform: scale(0.95);
+}
+
+/* Runway inspired CTA */
+.runway-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 340px;
+  height: 56px;
+  padding: 6px 6px 6px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.2s ease;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+.runway-cta:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.runway-cta-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--colors-primary);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  flex-shrink: 0; /* Prevent arrow box from squishing */
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.runway-cta:hover .runway-cta-arrow {
+  background: var(--colors-primary-active);
+  transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+  .desktop-only-btn {
+    display: none !important;
+  }
+  .runway-header {
+    position: sticky !important; /* Keep it sticky on mobile so the toggle is always visible */
+    top: 0 !important;
+  }
+  .runway-header-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .runway-corner-left,
+  .runway-corner-right {
+    display: none !important;
+  }
+  .top-nav {
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 16px 24px !important;
+    border: none !important;
+  }
+  .runway-cta {
+    width: calc(100% - 32px) !important;
+    max-width: 360px !important;
+  }
+  /* Optimize hero layout spacing so the CTA button is visible above fold on mobile */
+  .hero-band {
+    padding-top: 80px !important;
+  }
+  .hero-band .display-mega {
+    font-size: 28px !important;
+    line-height: 1.2 !important;
+  }
+  .hero-subhead {
+    margin: 12px auto 20px !important;
+    font-size: 14px !important;
+  }
 }
