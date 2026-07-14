@@ -7,6 +7,15 @@ import {
   fetchTimetableFromGosynk,
 } from "@/lib/gosynk-api-client";
 import { getLmsDues } from "@/lib/lms-client";
+import {
+  buildAttendanceRisk,
+  getClassesForDate,
+  getCurrentIstDate,
+  normalizeLmsDues,
+  pickNextClass,
+  projectAttendanceAfterMissingClasses,
+  resolveStudentDate,
+} from "@/lib/student-decision-layer";
 import { trackToolCall } from "@/lib/usage-analytics";
 
 const AI_INSTRUCTIONS = `
@@ -18,6 +27,8 @@ const AI_INSTRUCTIONS = `
 - **Timetable**: Present the timetable as a beautifully formatted markdown table, grouped by day.
 - **Internal marks**: Treat -2 or 0 as zero marks. Format as a clean table.
 - **General Rule (Rich Formatting)**: The output MUST use very rich, premium, and beautiful markdown formatting (use emojis, bold text, lists, and tables appropriately). Never output raw JSON.
+- **Relative dates**: Never guess dates or weekdays yourself. For requests like "tomorrow", "after 1 week", "next Monday", or "should I bunk tomorrow", call a decision/date-aware tool and use its \`resolvedDate\` exactly.
+- **Decision-first workflow**: Prefer the student decision tools (\`what_should_i_do_now\`, \`can_i_bunk_on\`, \`where_should_i_be_next\`, \`what_is_urgent_today\`, \`how_bad_is_my_attendance_risk\`) over raw ERP fetch tools when the user asks what to do, where to go, what changed, what is urgent, or whether skipping is safe.
 `.trim();
 
 const asToolResult = (payload) => ({
@@ -37,6 +48,35 @@ const readUserContext = (extra) => {
   }
 
   return userContext;
+};
+
+const readAcademicContext = (extra) => {
+  const userContext = readUserContext(extra);
+  return {
+    ...userContext,
+    academicYear: userContext.academicYear || "2026-2027",
+    semester: userContext.semester,
+  };
+};
+
+const fetchStudentSnapshot = async (extra, options = {}) => {
+  const userContext = readAcademicContext(extra);
+  const [timetable, attendance, lmsDues] = await Promise.all([
+    options.timetable === false
+      ? Promise.resolve(null)
+      : fetchTimetableFromGosynk(userContext),
+    options.attendance === false
+      ? Promise.resolve(null)
+      : fetchAttendanceFromGosynk(userContext),
+    options.lmsDues === false ? Promise.resolve(null) : getLmsDues(userContext),
+  ]);
+
+  return {
+    userContext,
+    timetable,
+    attendance,
+    lmsDues,
+  };
 };
 
 const withToolTracking = (toolName, handler) => async (args, extra) => {
@@ -86,6 +126,62 @@ export const createMcpServer = () => {
   );
 
   server.tool(
+    "resolve_student_date",
+    "Deterministically resolves student date phrases like today, tomorrow, after 1 week, next Monday, or YYYY-MM-DD in Asia/Kolkata. Use this before answering any date-sensitive question.",
+    {
+      targetDateText: z
+        .string()
+        .optional()
+        .describe("The exact date phrase from the user, for example 'tomorrow', 'after 1 week', 'next Wednesday', or '2026-07-15'."),
+    },
+    withToolTracking("resolve_student_date", async (args) => {
+      const now = getCurrentIstDate();
+      return asToolResult({
+        resolvedDate: resolveStudentDate(args.targetDateText || "today", now),
+        today: resolveStudentDate("today", now),
+        instruction:
+          "Use resolvedDate.isoDate and resolvedDate.weekday exactly. Do not reinterpret the user's relative date phrase.",
+      });
+    }),
+  );
+
+  server.tool(
+    "where_should_i_be_next",
+    "Answers where the student should go next using timetable room/block/slot details, not a generic timetable dump.",
+    {
+      targetDateText: z
+        .string()
+        .optional()
+        .describe("Optional date phrase. Defaults to today. Use the user's exact words when they ask about tomorrow, next week, etc."),
+    },
+    withToolTracking("where_should_i_be_next", async (args, extra) => {
+      const { timetable } = await fetchStudentSnapshot(extra, {
+        attendance: false,
+        lmsDues: false,
+      });
+      const resolvedDate = resolveStudentDate(args.targetDateText || "today");
+      const dayPlan = getClassesForDate(timetable, resolvedDate);
+      const nextClass =
+        resolvedDate.isoDate === resolveStudentDate("today").isoDate
+          ? pickNextClass(timetable)
+          : dayPlan.classes[0] || null;
+
+      return asToolResult({
+        resolvedDate,
+        nextClass,
+        classesForDay: dayPlan.classes,
+        proof: {
+          timetableRowsSeen: dayPlan.totalRowsSeen,
+          matchedRows: dayPlan.classes.length,
+          usedFallback: dayPlan.usedFallback,
+        },
+        instruction:
+          "Answer with the next room/block/slot if present. If room or block is missing, say it is missing from ERP data instead of guessing.",
+      });
+    }),
+  );
+
+  server.tool(
     "get_attendance",
     "Fetches weighted course attendance from KL University ERP.",
     {},
@@ -98,6 +194,73 @@ export const createMcpServer = () => {
       });
 
       return asToolResult(response);
+    }),
+  );
+
+  server.tool(
+    "how_bad_is_my_attendance_risk",
+    "Ranks attendance by pain: what will hurt the student later, which courses are below or near 75%, and the math proof behind each risk.",
+    {},
+    withToolTracking("how_bad_is_my_attendance_risk", async (_args, extra) => {
+      const { attendance } = await fetchStudentSnapshot(extra, {
+        timetable: false,
+        lmsDues: false,
+      });
+      const risks = buildAttendanceRisk(attendance);
+
+      return asToolResult({
+        risks,
+        riskMeaning: {
+          critical: "Below 75%. This can hurt immediately.",
+          high: "75-79.99%. One or two misses may become painful.",
+          medium: "80-84.99%. Watch it, but not panic territory.",
+          low: "85% or above.",
+          unknown: "ERP did not return enough totals to prove risk.",
+        },
+        instruction:
+          "Lead with the riskiest courses and show proof strings. Do not calculate a cumulative average across unrelated subjects.",
+      });
+    }),
+  );
+
+  server.tool(
+    "can_i_bunk_on",
+    "Answers whether the student can skip classes on a specific date by combining that date's timetable with current weighted attendance and projected post-absence percentages.",
+    {
+      targetDateText: z
+        .string()
+        .optional()
+        .describe("The user's date phrase, for example 'today', 'tomorrow', 'after 1 week', or 'next Friday'. Defaults to today."),
+    },
+    withToolTracking("can_i_bunk_on", async (args, extra) => {
+      const { timetable, attendance } = await fetchStudentSnapshot(extra, {
+        lmsDues: false,
+      });
+      const resolvedDate = resolveStudentDate(args.targetDateText || "today");
+      const dayPlan = getClassesForDate(timetable, resolvedDate);
+      const projections = projectAttendanceAfterMissingClasses(attendance, dayPlan.classes);
+      const riskyAfterBunk = projections.filter((item) =>
+        ["critical", "high"].includes(item.riskAfterBunk),
+      );
+
+      return asToolResult({
+        resolvedDate,
+        classesConsidered: dayPlan.classes,
+        projections,
+        answer:
+          dayPlan.classes.length === 0
+            ? "No classes were found for this date in the timetable payload."
+            : riskyAfterBunk.length
+              ? "Skipping is risky for at least one scheduled class."
+              : "Skipping does not appear to push matched courses into high or critical risk, based on available ERP data.",
+        proof: {
+          timetableRowsSeen: dayPlan.totalRowsSeen,
+          matchedRows: dayPlan.classes.length,
+          usedFallback: dayPlan.usedFallback,
+        },
+        instruction:
+          "Give a direct yes/no/maybe answer, then show each affected course with current %, projected %, drop, and proof. Mention unmatched courses separately instead of inventing projections.",
+      });
     }),
   );
 
@@ -134,6 +297,162 @@ export const createMcpServer = () => {
       const userContext = readUserContext(extra);
       const response = await getLmsDues(userContext);
       return asToolResult(response);
+    }),
+  );
+
+  server.tool(
+    "what_is_urgent_today",
+    "Separates urgent student work from noise: today's classes, attendance danger, and LMS dues due soon.",
+    {},
+    withToolTracking("what_is_urgent_today", async (_args, extra) => {
+      const now = getCurrentIstDate();
+      const { timetable, attendance, lmsDues } = await fetchStudentSnapshot(extra);
+      const resolvedDate = resolveStudentDate("today", now);
+      const todayClasses = getClassesForDate(timetable, resolvedDate);
+      const risks = buildAttendanceRisk(attendance).filter((item) =>
+        ["critical", "high"].includes(item.risk),
+      );
+      const dues = normalizeLmsDues(lmsDues, now).filter((item) =>
+        ["overdue", "today", "soon"].includes(item.urgency),
+      );
+
+      return asToolResult({
+        resolvedDate,
+        classesToday: todayClasses.classes,
+        attendanceRisks: risks,
+        urgentDues: dues,
+        instruction:
+          "Prioritize: overdue/today dues, next class location, critical attendance. Keep low-risk or later items out of the main answer.",
+      });
+    }),
+  );
+
+  server.tool(
+    "what_should_i_do_now",
+    "Gives one decision-focused answer for the student right now: next place to go, urgent deadlines, and attendance risks.",
+    {},
+    withToolTracking("what_should_i_do_now", async (_args, extra) => {
+      const now = getCurrentIstDate();
+      const { timetable, attendance, lmsDues } = await fetchStudentSnapshot(extra);
+      const resolvedDate = resolveStudentDate("today", now);
+      const todayClasses = getClassesForDate(timetable, resolvedDate);
+      const nextClass = pickNextClass(timetable, now);
+      const urgentDues = normalizeLmsDues(lmsDues, now).filter((item) =>
+        ["overdue", "today"].includes(item.urgency),
+      );
+      const attendanceRisks = buildAttendanceRisk(attendance).filter((item) =>
+        ["critical", "high"].includes(item.risk),
+      );
+
+      return asToolResult({
+        now: {
+          isoDate: resolvedDate.isoDate,
+          weekday: resolvedDate.weekday,
+          timeZone: resolvedDate.timeZone,
+        },
+        nextClass,
+        classesToday: todayClasses.classes,
+        urgentDues,
+        attendanceRisks,
+        recommendedOrder: [
+          "Handle overdue/today LMS dues first if any exist.",
+          "Go to the next scheduled class location if a class is upcoming.",
+          "Avoid skipping high/critical attendance courses.",
+        ],
+        instruction:
+          "Answer as a short decision list. Do not dump all timetable or attendance data unless the user asks.",
+      });
+    }),
+  );
+
+  server.tool(
+    "how_should_i_plan_my_day",
+    "Builds a fast student day plan from timetable, urgent LMS dues, and attendance risk.",
+    {
+      targetDateText: z
+        .string()
+        .optional()
+        .describe("Optional date phrase. Defaults to today; pass user's exact phrase for tomorrow/next week questions."),
+    },
+    withToolTracking("how_should_i_plan_my_day", async (args, extra) => {
+      const { timetable, attendance, lmsDues } = await fetchStudentSnapshot(extra);
+      const resolvedDate = resolveStudentDate(args.targetDateText || "today");
+      const classesForDay = getClassesForDate(timetable, resolvedDate);
+      const riskyCourses = buildAttendanceRisk(attendance).filter((item) =>
+        ["critical", "high"].includes(item.risk),
+      );
+      const dues = normalizeLmsDues(lmsDues).slice(0, 5);
+
+      return asToolResult({
+        resolvedDate,
+        classesForDay: classesForDay.classes,
+        riskyCourses,
+        upcomingDues: dues,
+        planningRules: [
+          "Attend high/critical attendance courses.",
+          "Put overdue/today LMS dues before low-risk study tasks.",
+          "Use room/block/slot from ERP; do not infer missing locations.",
+        ],
+      });
+    }),
+  );
+
+  server.tool(
+    "what_changed_since_yesterday",
+    "Explains what changed since yesterday. Currently returns a fresh check summary and explicitly reports that persistent delta history is not enabled yet.",
+    {},
+    withToolTracking("what_changed_since_yesterday", async (_args, extra) => {
+      const now = getCurrentIstDate();
+      const { timetable, attendance, lmsDues } = await fetchStudentSnapshot(extra);
+      const today = resolveStudentDate("today", now);
+      const yesterday = resolveStudentDate("yesterday", now);
+
+      return asToolResult({
+        deltaAvailable: false,
+        reason:
+          "KLMCP does not yet persist per-student timetable/attendance/LMS snapshots for historical comparison.",
+        comparedRange: {
+          from: yesterday,
+          to: today,
+        },
+        freshStatus: {
+          todayClasses: getClassesForDate(timetable, today).classes,
+          attendanceRisks: buildAttendanceRisk(attendance).filter((item) =>
+            ["critical", "high"].includes(item.risk),
+          ),
+          urgentDues: normalizeLmsDues(lmsDues, now).filter((item) =>
+            ["overdue", "today", "soon"].includes(item.urgency),
+          ),
+        },
+        instruction:
+          "Be honest that true deltas need stored snapshots. Then summarize what is currently worth the student's attention.",
+      });
+    }),
+  );
+
+  server.tool(
+    "what_will_affect_my_grade",
+    "Finds grade-affecting items from internal marks and LMS dues without mixing them with low-value noise.",
+    {
+      courseQuery: z.string().optional(),
+    },
+    withToolTracking("what_will_affect_my_grade", async (args, extra) => {
+      const userContext = readAcademicContext(extra);
+      const [internalMarks, lmsDues] = await Promise.all([
+        fetchInternalMarksFromGosynk(userContext, {
+          courseQuery: args.courseQuery,
+        }),
+        getLmsDues(userContext),
+      ]);
+
+      return asToolResult({
+        internalMarks,
+        upcomingDues: normalizeLmsDues(lmsDues).filter((item) =>
+          ["overdue", "today", "soon"].includes(item.urgency),
+        ),
+        instruction:
+          "Focus on missing/zero/-2 marks, low components, and due submissions. Treat -2 or 0 as zero marks.",
+      });
     }),
   );
 
