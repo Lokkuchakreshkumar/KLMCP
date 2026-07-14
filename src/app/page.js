@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { McpGuide } from "@/components/mcp-guide";
 
@@ -11,11 +11,13 @@ const AI_CLIENTS = [
 ];
 
 export default function HomePage() {
-  const [activeStep, setActiveStep] = useState(0); // Cycle: 0, 1, 2
+  const demoPlayerRef = useRef(null);
   const [copied, setCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentClientIndex, setCurrentClientIndex] = useState(0);
   const [isBlurring, setIsBlurring] = useState(false);
+  const [isDemoPlaying, setIsDemoPlaying] = useState(false);
+  const [demoPlayerSrc, setDemoPlayerSrc] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,41 +30,42 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const steps = [
-    {
-      id: 0,
-      pillLabel: "Thinking",
-      pillClass: "timeline-pill-thinking",
-      image: "/screenshot-step1.png",
-      alt: "Step 1: Typing prompt in ChatGPT"
-    },
-    {
-      id: 1,
-      pillLabel: "Reading",
-      pillClass: "timeline-pill-read",
-      image: "/screenshot-step2.png",
-      alt: "Step 2: Assistant calling KLU timetable tool"
-    },
-    {
-      id: 2,
-      pillLabel: "Done",
-      pillClass: "timeline-pill-done",
-      image: "/screenshot-step3.png",
-      alt: "Step 3: Timetable results displayed"
-    }
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % steps.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [activeStep, steps.length]);
-
   const handleCopy = () => {
     navigator.clipboard.writeText("https://klmcp.vercel.app/api/mcp");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const requestDemoQuality = () => {
+    const playerWindow = demoPlayerRef.current?.contentWindow;
+
+    if (!playerWindow) return;
+
+    const postPlayerCommand = (func, args = []) => {
+      playerWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func,
+          args,
+        }),
+        "https://www.youtube.com"
+      );
+    };
+
+    postPlayerCommand("setPlaybackQualityRange", ["hd1080", "hd1080"]);
+    postPlayerCommand("setPlaybackQuality", ["hd1080"]);
+  };
+
+  const handleDemoPlay = () => {
+    const origin =
+      typeof window !== "undefined"
+        ? `&origin=${encodeURIComponent(window.location.origin)}`
+        : "";
+
+    setDemoPlayerSrc(
+      `https://www.youtube.com/embed/dcR63YaWnBA?si=RwqM_dvRbDzmOliD&autoplay=1&rel=0&vq=hd1080&hd=1&enablejsapi=1${origin}`
+    );
+    setIsDemoPlaying(true);
   };
 
   return (
@@ -249,58 +252,45 @@ export default function HomePage() {
       {/* Main Content Wrapper (Container for remaining sections) */}
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px" }}>
 
-      {/* IDE Mockup Showcase */}
+      {/* Demo Video Showcase */}
       <section id="demo" style={{ padding: "0 0 80px" }}>
-        {/* Timeline Pills representing Agent Action */}
-        <div className="timeline-container" style={{ justifyContent: "center", marginBottom: "24px" }}>
-          {steps.map((step) => (
-            <button
-              key={step.id}
-              className={`timeline-pill ${step.pillClass} ${activeStep === step.id ? "active" : "inactive"}`}
-              onClick={() => setActiveStep(step.id)}
-              style={{ cursor: "pointer", border: "none" }}
-            >
-              {step.pillLabel}
-              {activeStep === step.id && <span className="pill-progress-bar"></span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Clean browser container without explorer panel */}
-        <div className="ide-mockup-card" style={{ border: "1px solid var(--colors-hairline)" }}>
-          <div className="ide-header">
-            <div className="ide-dot" style={{ backgroundColor: "#ff5f56" }}></div>
-            <div className="ide-dot" style={{ backgroundColor: "#ffbd2e" }}></div>
-            <div className="ide-dot" style={{ backgroundColor: "#27c93f" }}></div>
-            <span className="code" style={{ color: "var(--colors-muted)", marginLeft: "8px" }}>
-              ChatGPT Preview — KLMCP Endpoint Active
-            </span>
-          </div>
-
-          <div className="ide-pane-container">
-            <div className="ide-main-pane">
-              <div className="slideshow-viewport" style={{ position: "relative", width: "100%", aspectRatio: "16/10", overflow: "hidden", backgroundColor: "var(--colors-canvas-soft)" }}>
-                {steps.map((step, idx) => (
-                  <img
-                    key={step.id}
-                    src={step.image}
-                    alt={step.alt}
-                    className="slideshow-image"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      opacity: activeStep === idx ? 1 : 0,
-                      transition: "opacity 800ms ease-in-out",
-                      zIndex: activeStep === idx ? 2 : 1
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+        <div className="demo-video-card">
+          <div className="demo-video-shell">
+            {isDemoPlaying ? (
+              <iframe
+                ref={demoPlayerRef}
+                className="demo-video-frame"
+                src={demoPlayerSrc}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                onLoad={() => {
+                  requestDemoQuality();
+                  setTimeout(requestDemoQuality, 1200);
+                  setTimeout(requestDemoQuality, 3000);
+                }}
+                allowFullScreen
+              />
+            ) : (
+              <button
+                className="demo-video-cover"
+                type="button"
+                aria-label="Play KLMCP demo video"
+                onClick={handleDemoPlay}
+              >
+                <img
+                  src="https://img.youtube.com/vi/dcR63YaWnBA/maxresdefault.jpg"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span className="demo-video-scrim" aria-hidden="true"></span>
+                <span className="demo-play-button">
+                  <span className="demo-play-icon" aria-hidden="true"></span>
+                  <span>Play demo</span>
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </section>
