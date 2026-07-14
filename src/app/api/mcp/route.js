@@ -6,6 +6,7 @@ import { createMcpServer } from "@/lib/mcp-server";
 import { readAccessToken } from "@/lib/token-crypto";
 import { getAppUrl } from "@/lib/env";
 import { connectToDatabase } from "@/lib/db";
+import { trackMcpRequest } from "@/lib/usage-analytics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,8 +70,13 @@ const getUserContextFromRequest = async (request) => {
 };
 
 const handleMcpRequest = async (request) => {
+  const startedAt = Date.now();
+  let userContext;
+
   try {
-    const { token, userContext } = await getUserContextFromRequest(request);
+    const authContext = await getUserContextFromRequest(request);
+    const token = authContext.token;
+    userContext = authContext.userContext;
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
@@ -93,8 +99,25 @@ const handleMcpRequest = async (request) => {
       response.headers.set(key, value);
     });
 
+    await trackMcpRequest({
+      request,
+      userContext,
+      ok: response.status < 400,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    });
+
     return response;
   } catch (error) {
+    await trackMcpRequest({
+      request,
+      userContext,
+      ok: false,
+      status: 401,
+      durationMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : "Unauthorized.",
+    });
+
     return unauthorized(error instanceof Error ? error.message : "Unauthorized.");
   }
 };

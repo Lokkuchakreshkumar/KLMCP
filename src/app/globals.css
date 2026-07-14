@@ -915,6 +915,215 @@ body.page-container {
   font-size: 13px;
 }
 
+/* Usage Dashboard */
+.usage-page-shell {
+  max-width: 1280px;
+}
+
+.usage-dashboard {
+  display: grid;
+  gap: 24px;
+}
+
+.usage-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--colors-hairline);
+}
+
+.usage-hero p {
+  max-width: 640px;
+  margin: 12px 0 0;
+  color: var(--colors-body);
+  font-size: 14px;
+}
+
+.usage-secret-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.usage-secret-form input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--colors-hairline);
+  background-color: var(--colors-canvas-soft);
+  color: var(--colors-ink);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.usage-refresh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--colors-muted);
+  font-size: 13px;
+}
+
+.usage-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.usage-metric-card,
+.usage-panel,
+.usage-empty,
+.usage-error {
+  border: 1px solid var(--colors-hairline);
+  background-color: var(--colors-surface-card);
+  border-radius: 8px;
+}
+
+.usage-metric-card {
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  align-content: start;
+}
+
+.usage-metric-card span,
+.usage-panel-header span,
+.usage-empty span {
+  color: var(--colors-muted);
+  font-size: 12px;
+}
+
+.usage-metric-card strong {
+  color: var(--colors-ink);
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.usage-metric-card small {
+  color: var(--colors-body);
+  font-size: 12px;
+}
+
+.usage-grid-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 16px;
+}
+
+.usage-panel {
+  padding: 18px;
+  min-width: 0;
+}
+
+.usage-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.usage-panel-header h2 {
+  color: var(--colors-ink);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.usage-table-wrap {
+  overflow-x: auto;
+}
+
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.usage-table th,
+.usage-table td {
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--colors-hairline);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.usage-table th {
+  color: var(--colors-muted);
+  font-weight: 500;
+}
+
+.usage-table td {
+  color: var(--colors-body);
+  font-family: var(--font-mono);
+}
+
+.usage-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.usage-bar-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--colors-body);
+}
+
+.usage-bar-row strong {
+  color: var(--colors-ink);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  text-align: right;
+}
+
+.usage-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--colors-canvas-soft);
+  overflow: hidden;
+}
+
+.usage-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--colors-primary);
+}
+
+.usage-empty,
+.usage-error {
+  padding: 18px;
+}
+
+.usage-empty {
+  display: grid;
+  gap: 4px;
+}
+
+.usage-empty strong {
+  color: var(--colors-ink);
+  font-weight: 500;
+}
+
+.usage-error {
+  border-color: rgba(207, 45, 86, 0.4);
+  color: var(--colors-ink);
+  background-color: rgba(207, 45, 86, 0.08);
+}
+
+.usage-empty-inline {
+  color: var(--colors-muted);
+  font-size: 13px;
+}
+
 /* Simulated dropdown list (Card 1) */
 .mock-dropdown {
   background-color: #0b0a08;
@@ -1199,6 +1408,13 @@ body.page-container {
   .feature-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .usage-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .usage-grid-two,
+  .usage-hero {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1237,6 +1453,13 @@ body.page-container {
 @media (max-width: 600px) {
   .field-split {
     grid-template-columns: 1fr;
+  }
+  .usage-secret-form,
+  .usage-metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .usage-bar-row {
+    grid-template-columns: 78px minmax(0, 1fr) 40px;
   }
 }
 

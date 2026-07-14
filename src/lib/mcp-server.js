@@ -7,6 +7,7 @@ import {
   fetchTimetableFromGosynk,
 } from "@/lib/gosynk-api-client";
 import { getLmsDues } from "@/lib/lms-client";
+import { trackToolCall } from "@/lib/usage-analytics";
 
 const AI_INSTRUCTIONS = `
 [CRITICAL FORMATTING & CALCULATION INSTRUCTIONS FOR AI]:
@@ -38,6 +39,30 @@ const readUserContext = (extra) => {
   return userContext;
 };
 
+const withToolTracking = (toolName, handler) => async (args, extra) => {
+  const startedAt = Date.now();
+
+  try {
+    const result = await handler(args, extra);
+    await trackToolCall({
+      toolName,
+      extra,
+      ok: true,
+      durationMs: Date.now() - startedAt,
+    });
+    return result;
+  } catch (error) {
+    await trackToolCall({
+      toolName,
+      extra,
+      ok: false,
+      durationMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+};
+
 export const createMcpServer = () => {
   const server = new McpServer({
     name: "klmcp-remote",
@@ -48,7 +73,7 @@ export const createMcpServer = () => {
     "get_timetable",
     "Fetches the student's KL University timetable.",
     {},
-    async (args, extra) => {
+    withToolTracking("get_timetable", async (args, extra) => {
       const userContext = readUserContext(extra);
       const response = await fetchTimetableFromGosynk({
         ...userContext,
@@ -57,14 +82,14 @@ export const createMcpServer = () => {
       });
 
       return asToolResult(response);
-    },
+    }),
   );
 
   server.tool(
     "get_attendance",
     "Fetches weighted course attendance from KL University ERP.",
     {},
-    async (args, extra) => {
+    withToolTracking("get_attendance", async (args, extra) => {
       const userContext = readUserContext(extra);
       const response = await fetchAttendanceFromGosynk({
         ...userContext,
@@ -73,7 +98,7 @@ export const createMcpServer = () => {
       });
 
       return asToolResult(response);
-    },
+    }),
   );
 
   server.tool(
@@ -83,7 +108,7 @@ export const createMcpServer = () => {
       courseQuery: z.string().optional(),
       componentQuery: z.string().optional(),
     },
-    async (args, extra) => {
+    withToolTracking("get_internal_marks", async (args, extra) => {
       const userContext = readUserContext(extra);
       const response = await fetchInternalMarksFromGosynk(
         {
@@ -98,25 +123,25 @@ export const createMcpServer = () => {
       );
 
       return asToolResult(response);
-    },
+    }),
   );
 
   server.tool(
     "get_lms_dues",
     "Fetches upcoming LMS dues and assignment timeline.",
     {},
-    async (_args, extra) => {
+    withToolTracking("get_lms_dues", async (_args, extra) => {
       const userContext = readUserContext(extra);
       const response = await getLmsDues(userContext);
       return asToolResult(response);
-    },
+    }),
   );
 
   server.tool(
     "diagnose_student_access",
     "Checks whether ERP and LMS access currently work for the linked student credentials.",
     {},
-    async (args, extra) => {
+    withToolTracking("diagnose_student_access", async (args, extra) => {
       const userContext = readUserContext(extra);
       const academicYear = userContext.academicYear || "2026-2027";
       const semester = userContext.semester;
@@ -166,7 +191,7 @@ export const createMcpServer = () => {
       }
 
       return asToolResult({ diagnostics });
-    },
+    }),
   );
 
   return server;
