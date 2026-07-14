@@ -70,47 +70,18 @@ export const getUsageSummary = async () => {
     totals,
     last24h,
     last7d,
-    toolBreakdown,
-    dailyRequests,
+    toolBreakdownAllTime,
+    toolBreakdownLast7d,
+    dailyRequestsAllTime,
+    dailyRequestsLast7d,
   ] = await Promise.all([
     summarizeWindow(collection, new Date(0)),
     summarizeWindow(collection, since24h),
     summarizeWindow(collection, since7d),
-    collection
-      .aggregate([
-        { $match: { type: "tool_call", createdAt: { $gte: since7d } } },
-        {
-          $group: {
-            _id: "$toolName",
-            calls: { $sum: 1 },
-            failures: { $sum: { $cond: ["$ok", 0, 1] } },
-            avgDurationMs: { $avg: "$durationMs" },
-          },
-        },
-        { $sort: { calls: -1 } },
-      ])
-      .toArray(),
-    collection
-      .aggregate([
-        { $match: { type: "mcp_request", createdAt: { $gte: since7d } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-            requests: { $sum: 1 },
-            uniqueUsers: { $addToSet: "$userHash" },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            date: "$_id",
-            requests: 1,
-            uniqueUsers: { $size: "$uniqueUsers" },
-          },
-        },
-        { $sort: { date: 1 } },
-      ])
-      .toArray(),
+    getToolBreakdown(collection, new Date(0)),
+    getToolBreakdown(collection, since7d),
+    getDailyRequests(collection, new Date(0)),
+    getDailyRequests(collection, since7d),
   ]);
 
   return {
@@ -118,15 +89,59 @@ export const getUsageSummary = async () => {
     totals,
     last24h,
     last7d,
-    toolBreakdownLast7d: toolBreakdown.map((tool) => ({
-      toolName: tool._id,
-      calls: tool.calls,
-      failures: tool.failures,
-      avgDurationMs: Math.round(tool.avgDurationMs || 0),
-    })),
-    dailyRequestsLast7d: dailyRequests,
+    toolBreakdownAllTime,
+    toolBreakdownLast7d,
+    dailyRequestsAllTime,
+    dailyRequestsLast7d,
   };
 };
+
+const getToolBreakdown = async (collection, since) => {
+  const tools = await collection
+    .aggregate([
+      { $match: { type: "tool_call", createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: "$toolName",
+          calls: { $sum: 1 },
+          failures: { $sum: { $cond: ["$ok", 0, 1] } },
+          avgDurationMs: { $avg: "$durationMs" },
+        },
+      },
+      { $sort: { calls: -1 } },
+    ])
+    .toArray();
+
+  return tools.map((tool) => ({
+    toolName: tool._id,
+    calls: tool.calls,
+    failures: tool.failures,
+    avgDurationMs: Math.round(tool.avgDurationMs || 0),
+  }));
+};
+
+const getDailyRequests = async (collection, since) =>
+  collection
+    .aggregate([
+      { $match: { type: "mcp_request", createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          requests: { $sum: 1 },
+          uniqueUsers: { $addToSet: "$userHash" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          requests: 1,
+          uniqueUsers: { $size: "$uniqueUsers" },
+        },
+      },
+      { $sort: { date: 1 } },
+    ])
+    .toArray();
 
 const summarizeWindow = async (collection, since) => {
   const [summary] = await collection

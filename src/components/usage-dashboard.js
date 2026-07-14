@@ -36,8 +36,8 @@ export function UsageDashboard() {
   }, []);
 
   const maxDailyRequests = useMemo(() => {
-    if (!summary?.dailyRequestsLast7d?.length) return 1;
-    return Math.max(...summary.dailyRequestsLast7d.map((day) => day.requests), 1);
+    if (!summary?.dailyRequestsAllTime?.length) return 1;
+    return Math.max(...summary.dailyRequestsAllTime.map((day) => day.requests), 1);
   }, [summary]);
 
   const loadUsage = async (event) => {
@@ -124,22 +124,22 @@ export function UsageDashboard() {
             <MetricCard
               label="Total requests"
               value={summary.totals.mcpRequests}
-              detail={`${formatNumber(summary.last24h.mcpRequests)} in 24h`}
+              detail="All time"
             />
             <MetricCard
               label="Total tool calls"
               value={summary.totals.toolCalls}
-              detail={`${formatNumber(summary.last24h.toolCalls)} in 24h`}
+              detail="All time"
             />
             <MetricCard
               label="Unique users"
               value={summary.totals.uniqueUsers}
-              detail={`${formatNumber(summary.last7d.uniqueUsers)} in 7d`}
+              detail="All time"
             />
             <MetricCard
               label="Failures"
               value={summary.totals.failures}
-              detail={`${formatNumber(summary.last7d.failures)} in 7d`}
+              detail="All time"
             />
           </section>
 
@@ -147,7 +147,7 @@ export function UsageDashboard() {
             <div className="usage-panel">
               <div className="usage-panel-header">
                 <h2>Tool calls</h2>
-                <span>Last 7 days</span>
+                <span>All time</span>
               </div>
               <div className="usage-table-wrap">
                 <table className="usage-table">
@@ -160,8 +160,8 @@ export function UsageDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.toolBreakdownLast7d.length ? (
-                      summary.toolBreakdownLast7d.map((tool) => (
+                    {summary.toolBreakdownAllTime.length ? (
+                      summary.toolBreakdownAllTime.map((tool) => (
                         <tr key={tool.toolName}>
                           <td>{tool.toolName}</td>
                           <td>{formatNumber(tool.calls)}</td>
@@ -182,11 +182,11 @@ export function UsageDashboard() {
             <div className="usage-panel">
               <div className="usage-panel-header">
                 <h2>Daily requests</h2>
-                <span>Last 7 days</span>
+                <span>All time</span>
               </div>
               <div className="usage-bars">
-                {summary.dailyRequestsLast7d.length ? (
-                  summary.dailyRequestsLast7d.map((day) => (
+                {summary.dailyRequestsAllTime.length ? (
+                  summary.dailyRequestsAllTime.map((day) => (
                     <div className="usage-bar-row" key={day.date}>
                       <span>{day.date}</span>
                       <div className="usage-bar-track">
