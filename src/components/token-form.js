@@ -141,7 +141,7 @@ export function TokenForm({
         <div className="status-box" style={{ marginBottom: 12, borderLeft: "4px solid var(--colors-primary)" }}>
           <strong style={{ display: "block", marginBottom: 4, fontSize: "14px" }}>Active Session Detected</strong>
           <p style={{ margin: 0, fontSize: "13px", color: "var(--colors-body)" }}>
-            You already have an active token. Submitting this form will update your semester or credentials on the server. <strong>Your existing MCP client setup will work instantly without any re-configuration!</strong>
+            You already have an active token. Submitting this form updates the linked ERP account on the server, so other browsers and MCP clients using the same ERP username receive the latest semester and credentials too.
           </p>
         </div>
       )}
@@ -242,8 +242,8 @@ export function TokenForm({
             <p style={{ margin: 0, fontSize: "14px" }}>
               {isUpdating ? (
                 <>
-                  Your semester and credentials have been updated in the database. 
-                  <strong> Your active MCP client configuration will automatically reflect these updates</strong>—no need to change the token settings in ChatGPT/Cursor/Claude!
+                  Your ERP account configuration has been updated on the server.
+                  <strong> Other browsers and MCP clients linked to the same ERP username will use the latest semester and credentials.</strong>
                 </>
               ) : (
                 <>

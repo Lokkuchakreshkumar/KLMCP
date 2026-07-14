@@ -9,11 +9,11 @@ import {
 import { getLmsDues } from "@/lib/lms-client";
 import {
   buildAttendanceRisk,
+  calculateAttendance,
   getClassesForDate,
   getCurrentIstDate,
   normalizeLmsDues,
   pickNextClass,
-  projectAttendanceAfterMissingClasses,
   resolveStudentDate,
 } from "@/lib/student-decision-layer";
 import { trackToolCall } from "@/lib/usage-analytics";
@@ -23,7 +23,7 @@ const AI_INSTRUCTIONS = `
 - **Attendance Grouping**: When the tool returns multiple components (L, T, P, S) for a single course, GROUP them under ONE course code header.
 - **Attendance Weightage**: L (Lecture) & T (Tutorial) have 100% weightage. P (Practical) has 50% weightage. S (Skill) has 25% weightage.
 - **Total Course Percentage & Proofs**: Use the course-level grouped data from \`groupedCourses\`. Do NOT just output text—you MUST show the mathematical proofs and calculations (e.g., how the weighted present and total counts result in the final percentage) so the user can verify the math. Do NOT calculate the cumulative average across all subjects yourself.
-- **Bunk / Absence Planning Workflow**: If the user asks what happens if they bunk/miss classes on a specific day, you MUST execute this step-by-step process: 1. Call \`get_timetable\` to see exactly which courses and component types (L/T/P/S) are scheduled for that specific day. 2. Call \`get_attendance\` to get the current attendance data. 3. Apply the missed classes only to the specific scheduled components (factor in the weightages). 4. Recalculate and display the projected percentage with proofs.
+- **Attendance Calculator**: For every attendance, bunk, or absence projection question, use \`calculate_attendance\` or \`can_i_bunk_on\`. These tools are the source of truth. Never do LTPS arithmetic yourself or assume a missing component is L.
 - **Timetable**: Present the timetable as a beautifully formatted markdown table, grouped by day.
 - **Internal marks**: Treat -2 or 0 as zero marks. Format as a clean table.
 - **General Rule (Rich Formatting)**: The output MUST use very rich, premium, and beautiful markdown formatting (use emojis, bold text, lists, and tables appropriately). Never output raw JSON.
@@ -102,6 +102,17 @@ const withToolTracking = (toolName, handler) => async (args, extra) => {
     throw error;
   }
 };
+
+const plannedAbsenceSchema = z
+  .object({
+    courseCode: z.string().min(1).optional(),
+    courseName: z.string().min(1).optional(),
+    component: z.enum(["L", "T", "P", "S"]),
+    count: z.number().int().positive().default(1),
+  })
+  .refine((value) => value.courseCode || value.courseName, {
+    message: "Provide courseCode or courseName for each planned absence.",
+  });
 
 export const createMcpServer = () => {
   const server = new McpServer({
@@ -198,6 +209,39 @@ export const createMcpServer = () => {
   );
 
   server.tool(
+    "calculate_attendance",
+    "Deterministically calculates current or projected attendance from live ERP data using LTPS weights: L=1, T=1, P=0.5, S=0.25. Returns every formula step and never estimates unknown inputs.",
+    {
+      plannedAbsences: z
+        .array(plannedAbsenceSchema)
+        .optional()
+        .describe("Optional planned missed sessions. Each item needs courseCode or courseName, component L/T/P/S, and count. Omit to calculate current attendance only."),
+      minimumPercentage: z
+        .number()
+        .min(0)
+        .max(100)
+        .optional()
+        .describe("Attendance threshold to check. Defaults to 75."),
+    },
+    withToolTracking("calculate_attendance", async (args, extra) => {
+      const { attendance } = await fetchStudentSnapshot(extra, {
+        timetable: false,
+        lmsDues: false,
+      });
+      const calculation = calculateAttendance(attendance, {
+        plannedAbsences: args.plannedAbsences,
+        minimumPercentage: args.minimumPercentage,
+      });
+
+      return asToolResult({
+        ...calculation,
+        instruction:
+          "Present each course independently. Use calculation.steps in order: current weighted attendance, planned missed sessions, projected weighted attendance, then threshold check. Do not calculate an overall average. If invalidAbsences or unmatchedAbsences is non-empty, say the result cannot be verified for those entries.",
+      });
+    }),
+  );
+
+  server.tool(
     "how_bad_is_my_attendance_risk",
     "Ranks attendance by pain: what will hurt the student later, which courses are below or near 75%, and the math proof behind each risk.",
     {},
@@ -238,28 +282,40 @@ export const createMcpServer = () => {
       });
       const resolvedDate = resolveStudentDate(args.targetDateText || "today");
       const dayPlan = getClassesForDate(timetable, resolvedDate);
-      const projections = projectAttendanceAfterMissingClasses(attendance, dayPlan.classes);
-      const riskyAfterBunk = projections.filter((item) =>
-        ["critical", "high"].includes(item.riskAfterBunk),
+      const attendanceCalculation = calculateAttendance(attendance, {
+        plannedAbsences: dayPlan.classes.map((classItem) => ({
+          courseCode: classItem.courseCode,
+          courseName: classItem.courseName,
+          component: classItem.component,
+          count: 1,
+        })),
+      });
+      const riskyAfterBunk = attendanceCalculation.calculations.filter((item) =>
+        ["critical", "high"].includes(item.riskAfterAbsences),
       );
+      const cannotVerify =
+        attendanceCalculation.invalidAbsences.length > 0 ||
+        attendanceCalculation.unmatchedAbsences.length > 0;
 
       return asToolResult({
         resolvedDate,
         classesConsidered: dayPlan.classes,
-        projections,
+        attendanceCalculation,
         answer:
           dayPlan.classes.length === 0
             ? "No classes were found for this date in the timetable payload."
+            : cannotVerify
+              ? "Cannot safely verify every scheduled class because ERP data is missing a course match, totals, or a valid LTPS component."
             : riskyAfterBunk.length
               ? "Skipping is risky for at least one scheduled class."
-              : "Skipping does not appear to push matched courses into high or critical risk, based on available ERP data.",
+              : "Skipping does not appear to push any scheduled course into high or critical risk, based on verified ERP data.",
         proof: {
           timetableRowsSeen: dayPlan.totalRowsSeen,
           matchedRows: dayPlan.classes.length,
           usedFallback: dayPlan.usedFallback,
         },
         instruction:
-          "Give a direct yes/no/maybe answer, then show each affected course with current %, projected %, drop, and proof. Mention unmatched courses separately instead of inventing projections.",
+          "Give a direct yes/no/maybe answer, then show each affected course using attendanceCalculation.calculations and its four calculation steps. Never calculate attendance yourself. If invalidAbsences or unmatchedAbsences is non-empty, lead with what could not be verified.",
       });
     }),
   );

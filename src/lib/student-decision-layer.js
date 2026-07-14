@@ -12,12 +12,14 @@ const DAY_NAMES = [
 
 const SHORT_DAY_NAMES = DAY_NAMES.map((day) => day.slice(0, 3).toLowerCase());
 
-const COMPONENT_WEIGHTS = {
+export const ATTENDANCE_COMPONENT_WEIGHTS = {
   L: 1,
   T: 1,
   P: 0.5,
   S: 0.25,
 };
+
+const DEFAULT_ATTENDANCE_THRESHOLD = 75;
 
 const pad2 = (value) => String(value).padStart(2, "0");
 
@@ -356,10 +358,18 @@ export const buildAttendanceGroups = (attendancePayload) => {
       weightedTotal: 0,
       components: [],
       sourceRows: 0,
+      hasUnweightedComponents: false,
     };
-    const weight = COMPONENT_WEIGHTS[row.component] ?? 1;
-    const present = row.weightedPresent ?? (row.present !== undefined ? row.present * weight : undefined);
-    const total = row.weightedTotal ?? (row.total !== undefined ? row.total * weight : undefined);
+    const weight = ATTENDANCE_COMPONENT_WEIGHTS[row.component];
+    const hasPreweightedTotals =
+      row.weightedPresent !== undefined && row.weightedTotal !== undefined;
+    const hasRawTotals = row.present !== undefined && row.total !== undefined;
+    const present = row.weightedPresent ?? (weight !== undefined ? row.present * weight : undefined);
+    const total = row.weightedTotal ?? (weight !== undefined ? row.total * weight : undefined);
+
+    if (hasRawTotals && !hasPreweightedTotals && weight === undefined) {
+      existing.hasUnweightedComponents = true;
+    }
 
     if (present !== undefined && total !== undefined) {
       existing.weightedPresent += present;
@@ -370,7 +380,7 @@ export const buildAttendanceGroups = (attendancePayload) => {
 
     existing.components.push({
       component: row.component || "unknown",
-      weight,
+      weight: weight ?? null,
       present: row.present,
       total: row.total,
       weightedPresent: present,
@@ -383,7 +393,7 @@ export const buildAttendanceGroups = (attendancePayload) => {
 
   return [...groups.values()].map((group) => {
     const percentage =
-      group.weightedTotal > 0
+      !group.hasUnweightedComponents && group.weightedTotal > 0
         ? Number(((group.weightedPresent / group.weightedTotal) * 100).toFixed(2))
         : group.percentage;
 
@@ -391,24 +401,24 @@ export const buildAttendanceGroups = (attendancePayload) => {
       ...group,
       percentage,
       proof:
-        group.weightedTotal > 0
+        !group.hasUnweightedComponents && group.weightedTotal > 0
           ? `${group.weightedPresent.toFixed(2)} / ${group.weightedTotal.toFixed(2)} * 100 = ${percentage}%`
-          : "Could not prove percentage because weighted totals were not present in ERP data.",
+          : "Could not prove percentage because ERP data is missing an LTPS component or weighted totals.",
     };
   });
 };
 
-const classifyAttendanceRisk = (percentage) => {
+export const classifyAttendanceRisk = (percentage, minimumPercentage = DEFAULT_ATTENDANCE_THRESHOLD) => {
   if (percentage === undefined) {
     return "unknown";
   }
-  if (percentage < 75) {
+  if (percentage < minimumPercentage) {
     return "critical";
   }
-  if (percentage < 80) {
+  if (percentage < minimumPercentage + 5) {
     return "high";
   }
-  if (percentage < 85) {
+  if (percentage < minimumPercentage + 10) {
     return "medium";
   }
   return "low";
@@ -429,43 +439,164 @@ export const buildAttendanceRisk = (attendancePayload) =>
       return rank[a.risk] - rank[b.risk] || (a.percentage ?? 999) - (b.percentage ?? 999);
     });
 
-export const projectAttendanceAfterMissingClasses = (attendancePayload, classes) => {
+const attendanceCourseKey = (item) =>
+  normalizeCourseCode(item.courseCode || item.courseName);
+
+const round = (value) => Number(value.toFixed(2));
+
+const buildCourseCalculation = (group, absences, minimumPercentage) => {
+  const missedWeight = absences.reduce(
+    (total, absence) => total + ATTENDANCE_COMPONENT_WEIGHTS[absence.component] * absence.count,
+    0,
+  );
+  const projectedTotal = group.weightedTotal + missedWeight;
+  const projectedPercentage = round((group.weightedPresent / projectedTotal) * 100);
+
+  return {
+    courseCode: group.courseCode,
+    courseName: group.courseName,
+    currentPercentage: group.percentage,
+    projectedPercentage,
+    percentageDrop: round((group.percentage ?? projectedPercentage) - projectedPercentage),
+    riskAfterAbsences: classifyAttendanceRisk(projectedPercentage, minimumPercentage),
+    isBelowMinimumAfterAbsences: projectedPercentage < minimumPercentage,
+    calculation: {
+      formula: "attendance % = weighted present / weighted total * 100",
+      minimumPercentage,
+      steps: [
+        {
+          step: 1,
+          label: "Current weighted attendance",
+          weightedPresent: group.weightedPresent,
+          weightedTotal: group.weightedTotal,
+          proof: `${group.weightedPresent.toFixed(2)} / ${group.weightedTotal.toFixed(2)} * 100 = ${group.percentage}%`,
+        },
+        {
+          step: 2,
+          label: "Planned missed sessions",
+          absences: absences.map((absence) => ({
+            component: absence.component,
+            count: absence.count,
+            weight: ATTENDANCE_COMPONENT_WEIGHTS[absence.component],
+            weightedMissedClasses: round(
+              ATTENDANCE_COMPONENT_WEIGHTS[absence.component] * absence.count,
+            ),
+          })),
+          totalWeightedMissedClasses: round(missedWeight),
+          proof: absences
+            .map(
+              (absence) =>
+                `${absence.count} ${absence.component} x ${ATTENDANCE_COMPONENT_WEIGHTS[absence.component]}`,
+            )
+            .join(" + ") || "No planned absences. Weighted missed classes = 0.",
+        },
+        {
+          step: 3,
+          label: "Projected weighted attendance",
+          weightedPresent: group.weightedPresent,
+          projectedWeightedTotal: projectedTotal,
+          proof: `${group.weightedPresent.toFixed(2)} / ${projectedTotal.toFixed(2)} * 100 = ${projectedPercentage}%`,
+        },
+        {
+          step: 4,
+          label: "Threshold check",
+          proof: `${projectedPercentage}% ${projectedPercentage < minimumPercentage ? "<" : ">="} ${minimumPercentage}%`,
+        },
+      ],
+    },
+  };
+};
+
+export const calculateAttendance = (
+  attendancePayload,
+  { plannedAbsences = [], minimumPercentage = DEFAULT_ATTENDANCE_THRESHOLD } = {},
+) => {
   const groups = buildAttendanceGroups(attendancePayload);
   const byCourse = new Map(
-    groups.map((group) => [normalizeCourseCode(group.courseCode || group.courseName), group]),
+    groups.map((group) => [attendanceCourseKey(group), group]),
   );
+  const absencesByCourse = new Map();
+  const invalidAbsences = [];
 
-  return classes
-    .map((classItem) => {
-      const key = normalizeCourseCode(classItem.courseCode || classItem.courseName);
-      const group = byCourse.get(key);
-      const component = classItem.component || "L";
-      const missedWeight = COMPONENT_WEIGHTS[component] ?? 1;
+  for (const absence of plannedAbsences) {
+    const courseKey = attendanceCourseKey(absence);
+    const component = normalizeComponent(absence.component);
+    const count = asNumber(absence.count) ?? 1;
 
-      if (!group || group.weightedTotal <= 0) {
-        return {
-          class: classItem,
-          matchedAttendance: false,
-          message: "Could not project this class because matching attendance totals were not found.",
-        };
-      }
+    if (!courseKey || !ATTENDANCE_COMPONENT_WEIGHTS[component] || !Number.isInteger(count) || count <= 0) {
+      invalidAbsences.push({
+        ...absence,
+        message:
+          "Each planned absence needs a course and a valid L, T, P, or S component with a positive whole-number count.",
+      });
+      continue;
+    }
 
-      const projectedTotal = group.weightedTotal + missedWeight;
-      const projectedPresent = group.weightedPresent;
-      const projectedPercentage = Number(((projectedPresent / projectedTotal) * 100).toFixed(2));
+    const items = absencesByCourse.get(courseKey) || [];
+    const existing = items.find((item) => item.component === component);
+    if (existing) {
+      existing.count += count;
+    } else {
+      items.push({ component, count });
+    }
+    absencesByCourse.set(courseKey, items);
+  }
 
-      return {
-        class: classItem,
-        matchedAttendance: true,
-        currentPercentage: group.percentage,
-        projectedPercentage,
-        drop: Number(((group.percentage ?? projectedPercentage) - projectedPercentage).toFixed(2)),
-        missedWeight,
-        riskAfterBunk: classifyAttendanceRisk(projectedPercentage),
-        proof: `${projectedPresent.toFixed(2)} / ${projectedTotal.toFixed(2)} * 100 = ${projectedPercentage}%`,
-      };
-    })
-    .sort((a, b) => (a.projectedPercentage ?? 999) - (b.projectedPercentage ?? 999));
+  const calculations = [];
+  const unmatchedAbsences = [];
+
+  for (const [courseKey, absences] of absencesByCourse) {
+    const group = byCourse.get(courseKey);
+    if (!group || group.weightedTotal <= 0 || group.hasUnweightedComponents) {
+      unmatchedAbsences.push({
+        courseKey,
+        absences,
+        message: "No complete, verifiable LTPS-weighted attendance totals were found for this course, so no percentage was calculated.",
+      });
+      continue;
+    }
+
+    calculations.push(buildCourseCalculation(group, absences, minimumPercentage));
+  }
+
+  return {
+    formula: "attendance % = weighted present / weighted total * 100",
+    componentWeights: ATTENDANCE_COMPONENT_WEIGHTS,
+    minimumPercentage,
+    currentCourses: groups.map((group) => ({
+      ...group,
+      risk: classifyAttendanceRisk(group.percentage, minimumPercentage),
+    })),
+    currentCalculations: groups
+      .filter((group) => group.weightedTotal > 0 && !group.hasUnweightedComponents)
+      .map((group) => buildCourseCalculation(group, [], minimumPercentage)),
+    plannedAbsences: [...absencesByCourse.entries()].map(([courseKey, absences]) => ({
+      courseKey,
+      absences,
+    })),
+    calculations: calculations.sort(
+      (a, b) => (a.projectedPercentage ?? 999) - (b.projectedPercentage ?? 999),
+    ),
+    unmatchedAbsences,
+    invalidAbsences,
+  };
+};
+
+export const projectAttendanceAfterMissingClasses = (attendancePayload, classes) => {
+  const plannedAbsences = classes.map((classItem) => ({
+    courseCode: classItem.courseCode,
+    courseName: classItem.courseName,
+    component: classItem.component,
+    count: 1,
+  }));
+  const calculation = calculateAttendance(attendancePayload, { plannedAbsences });
+
+  return calculation.calculations.map((item) => ({
+    ...item,
+    riskAfterBunk: item.riskAfterAbsences,
+    drop: item.percentageDrop,
+    proof: item.calculation.steps[2].proof,
+  }));
 };
 
 export const normalizeLmsDues = (lmsPayload, now = getCurrentIstDate()) => {
@@ -509,4 +640,3 @@ export const pickNextClass = (timetablePayload, now = getCurrentIstDate()) => {
 
   return timedClasses[0] || todayClasses[0] || null;
 };
-
