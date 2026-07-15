@@ -21,6 +21,7 @@ KLMCP is a Vercel-friendly Next.js app that gives users a hosted onboarding page
 - `NEXT_PUBLIC_APP_URL`
 - `KLMCP_TOKEN_SECRET`
 - `GOSYNK_API_BASE_URL`
+- `GOSYNK_ACADEMIC_SUMMARY_PATH` (optional; defaults to `/erp/academic-summary`)
 - `ERP_BASE_URL`
 - `LMS_BASE_URL`
 
@@ -45,6 +46,8 @@ npm run dev
 - `get_timetable`
 - `get_attendance`
 - `get_internal_marks`
+- `get_subjects` (live, verified course-code-to-name directory)
+- `get_academic_summary` (ERP-reported SGPA and CGPA)
 - `get_lms_dues`
 - `diagnose_student_access`
 

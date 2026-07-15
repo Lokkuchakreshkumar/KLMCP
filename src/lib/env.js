@@ -15,6 +15,11 @@ export const getAppUrl = () =>
 
 export const getGosynkApiBaseUrl = () => readEnv("GOSYNK_API_BASE_URL");
 
+// GoSynk owns the ERP scraping implementation. Keep this configurable so an
+// upstream route rename does not require a KLMCP code deployment.
+export const getGosynkAcademicSummaryPath = () =>
+  process.env.GOSYNK_ACADEMIC_SUMMARY_PATH?.trim() || "/erp/academic-summary";
+
 export const getErpBaseUrl = () =>
   process.env.ERP_BASE_URL?.trim() || "https://newerp.kluniversity.in";
 

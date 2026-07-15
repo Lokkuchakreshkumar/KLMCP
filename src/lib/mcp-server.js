@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import {
+  fetchAcademicSummaryFromGosynk,
   fetchAttendanceFromGosynk,
   fetchInternalMarksFromGosynk,
   fetchTimetableFromGosynk,
@@ -9,6 +10,7 @@ import {
 import { getLmsDues } from "@/lib/lms-client";
 import {
   buildAttendanceRisk,
+  buildSubjectDirectory,
   calculateAttendance,
   getClassesForDate,
   getCurrentIstDate,
@@ -26,6 +28,8 @@ const AI_INSTRUCTIONS = `
 - **Attendance Calculator**: For every attendance, bunk, or absence projection question, use \`calculate_attendance\` or \`can_i_bunk_on\`. These tools are the source of truth. Never do LTPS arithmetic yourself or assume a missing component is L.
 - **Timetable**: Present the timetable as a beautifully formatted markdown table, grouped by day.
 - **Internal marks**: Treat -2 or 0 as zero marks. Format as a clean table.
+- **Subject names**: Prefer the verified \`courseName\` from \`get_subjects\` or ERP data. Never invent a name from a code. If a name is unavailable, show the course code and say ERP/Moodle did not provide its title.
+- **CGPA and SGPA**: Use only values returned by \`get_academic_summary\`. Do not estimate or recompute GPA from internal marks, attendance, or partial grade data.
 - **General Rule (Rich Formatting)**: The output MUST use very rich, premium, and beautiful markdown formatting (use emojis, bold text, lists, and tables appropriately). Never output raw JSON.
 - **Relative dates**: Never guess dates or weekdays yourself. For requests like "tomorrow", "after 1 week", "next Monday", or "should I bunk tomorrow", call a decision/date-aware tool and use its \`resolvedDate\` exactly.
 - **Decision-first workflow**: Prefer the student decision tools (\`what_should_i_do_now\`, \`can_i_bunk_on\`, \`where_should_i_be_next\`, \`what_is_urgent_today\`, \`how_bad_is_my_attendance_risk\`) over raw ERP fetch tools when the user asks what to do, where to go, what changed, what is urgent, or whether skipping is safe.
@@ -205,6 +209,52 @@ export const createMcpServer = () => {
       });
 
       return asToolResult(response);
+    }),
+  );
+
+  server.tool(
+    "get_subjects",
+    "Builds the student's live subject directory by matching ERP course codes with ERP/Moodle course titles. Returns only verified names and never guesses from a code.",
+    {},
+    withToolTracking("get_subjects", async (_args, extra) => {
+      const userContext = readAcademicContext(extra);
+      const [{ timetable, attendance, lmsDues }, internalMarks] = await Promise.all([
+        fetchStudentSnapshot(extra),
+        fetchInternalMarksFromGosynk(userContext),
+      ]);
+      const subjects = buildSubjectDirectory({
+        timetable,
+        attendance,
+        internalMarks,
+        lmsDues,
+      });
+
+      return asToolResult({
+        subjects,
+        summary: {
+          totalCourses: subjects.length,
+          namedCourses: subjects.filter((subject) => subject.nameVerified).length,
+          unnamedCourses: subjects
+            .filter((subject) => !subject.nameVerified)
+            .map((subject) => subject.courseCode),
+        },
+        instruction:
+          "Use courseName only when nameVerified is true. For unnamedCourses, retain the code and clearly state that no authoritative name was returned.",
+      });
+    }),
+  );
+
+  server.tool(
+    "get_academic_summary",
+    "Fetches ERP-calculated SGPA and CGPA, plus any semester/result details returned by the university. Values are reported by ERP and are not estimated.",
+    {},
+    withToolTracking("get_academic_summary", async (_args, extra) => {
+      const response = await fetchAcademicSummaryFromGosynk(readAcademicContext(extra));
+      return asToolResult({
+        ...response,
+        instruction:
+          "Report CGPA and SGPA exactly as returned by ERP. If either value is absent, say it was not available in the ERP response; do not calculate it yourself.",
+      });
     }),
   );
 

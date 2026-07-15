@@ -1,4 +1,7 @@
-import { getGosynkApiBaseUrl } from "@/lib/env";
+import {
+  getGosynkAcademicSummaryPath,
+  getGosynkApiBaseUrl,
+} from "@/lib/env";
 
 const buildEndpoint = (path) => `${getGosynkApiBaseUrl().replace(/\/$/, "")}${path}`;
 
@@ -106,4 +109,21 @@ export const fetchInternalMarksFromGosynk = async (userContext, filters = {}) =>
     },
     courseQuery: filters.courseQuery,
     componentQuery: filters.componentQuery,
+  });
+
+/**
+ * Fetches the university-calculated academic summary. CGPA and SGPA must come
+ * from ERP because grade points, credits, and audit courses cannot be safely
+ * reconstructed from attendance or internal marks.
+ */
+export const fetchAcademicSummaryFromGosynk = async (userContext) =>
+  callErpEndpoint(getGosynkAcademicSummaryPath(), {
+    erpCredentials: {
+      username: userContext.erpUsername,
+      password: userContext.erpPassword,
+    },
+    academicContext: {
+      academicYear: userContext.academicYear,
+      semester: userContext.semester,
+    },
   });

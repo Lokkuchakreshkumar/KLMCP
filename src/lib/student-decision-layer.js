@@ -308,7 +308,7 @@ export const getClassesForDate = (timetablePayload, resolvedDate) => {
 
 const normalizeAttendanceRow = (row) => {
   const courseCode = getValue(row, ["coursecode", "subjectcode", "course", "subject"]);
-  const courseName = getValue(row, ["coursename", "subjectname", "name", "title"]);
+  const courseName = getValue(row, ["coursename", "subjectname", "description", "name", "title"]);
   const component = getValue(row, ["component", "type", "coursetype"]);
   const present = getValue(row, ["present", "attended", "classesattended", "presentclasses"]);
   const total = getValue(row, ["total", "conducted", "classesconducted", "totalclasses"]);
@@ -344,6 +344,70 @@ export const extractAttendanceRows = (payload) =>
   collectObjects(unwrapData(payload))
     .filter(looksLikeAttendanceRow)
     .map(normalizeAttendanceRow);
+
+const isUsefulCourseName = (courseName, courseCode) => {
+  const name = String(courseName || "").trim();
+  return Boolean(name && normalizeCourseCode(name) !== normalizeCourseCode(courseCode));
+};
+
+/**
+ * Builds a per-student directory from data the university already exposes.
+ * This intentionally does not guess names from course codes: curriculum codes
+ * are not globally unique across programmes, batches, and electives.
+ */
+export const buildSubjectDirectory = ({ timetable, attendance, internalMarks, lmsDues } = {}) => {
+  const subjects = new Map();
+
+  const add = ({ courseCode, courseName, source }) => {
+    const code = normalizeCourseCode(courseCode);
+    const name = String(courseName || "").trim();
+
+    if (!code) {
+      return;
+    }
+
+    const subject = subjects.get(code) || {
+      courseCode: code,
+      courseName: "",
+      sources: [],
+      nameVerified: false,
+    };
+
+    if (isUsefulCourseName(name, code)) {
+      subject.courseName = subject.courseName || name;
+      subject.nameVerified = true;
+    }
+    if (!subject.sources.includes(source)) {
+      subject.sources.push(source);
+    }
+    subjects.set(code, subject);
+  };
+
+  extractTimetableRows(timetable).forEach((row) =>
+    add({ ...row, source: "ERP timetable" }),
+  );
+  extractAttendanceRows(attendance).forEach((row) =>
+    add({ ...row, source: "ERP attendance" }),
+  );
+  (unwrapData(internalMarks)?.overview?.courses || []).forEach((course) =>
+    add({
+      courseCode: course.courseCode,
+      courseName: course.courseName,
+      source: "ERP internal marks",
+    }),
+  );
+  (lmsDues?.structured || []).forEach((item) =>
+    add({
+      courseCode: item.courseCode,
+      courseName: item.courseName,
+      source: "Moodle course",
+    }),
+  );
+
+  return [...subjects.values()].sort((a, b) =>
+    a.courseCode.localeCompare(b.courseCode),
+  );
+};
 
 export const buildAttendanceGroups = (attendancePayload) => {
   const rows = extractAttendanceRows(attendancePayload);

@@ -112,6 +112,11 @@ export const getLmsDues = async ({ lmsUsername, lmsPassword }) => {
     name: event.name,
     courseName:
       event.course?.fulltitle || event.course?.fullname || "Unknown Course",
+    // Moodle course short names commonly contain the ERP course code. Keeping
+    // both values lets KLMCP resolve a human-readable subject name without a
+    // brittle, programme-specific static mapping.
+    courseCode: event.course?.shortname || event.course?.idnumber || "",
+    courseId: event.course?.id,
     dueTimestamp: event.timesort,
     dueDate: new Date(event.timesort * 1000).toLocaleString("en-IN", {
       weekday: "short",
