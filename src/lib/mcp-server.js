@@ -121,7 +121,7 @@ const plannedAbsenceSchema = z
 export const createMcpServer = () => {
   const server = new McpServer({
     name: "klmcp-remote",
-    version: "0.2.0",
+    version: "0.3.0",
   });
 
   server.tool(
